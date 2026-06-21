@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết đơn hàng - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>body{background:#f3f4f6;} .admin-layout{display:flex;min-height:100vh;} .main-panel{flex:1;padding:2rem;overflow-x:hidden;} .detail-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;} @media(max-width:768px){.detail-grid{grid-template-columns:1fr;}} </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;">
+        <a href="orders.html" style="color:#6b7280;text-decoration:none;font-size:1.25rem;">‹</a>
+        <div>
+          <h1 id="page-title" style="font-size:1.5rem;font-weight:800;">Chi tiết đơn hàng</h1>
+          <p id="page-date" style="color:#6b7280;font-size:.875rem;"></p>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:.5rem;">
+          <a id="update-link" href="#" class="btn btn-green">Cập nhật trạng thái</a>
+        </div>
+      </div>
+
+      <div class="detail-grid" id="detail-content">
+        <div style="text-align:center;padding:3rem;color:#9ca3af;">Đang tải...</div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+    const id = getParam('id');
+    const order = MOCK_ORDERS.find(o=>o.id==id)||MOCK_ORDERS[0];
+
+    document.getElementById('page-title').textContent = 'Đơn hàng #'+order.id;
+    document.getElementById('page-date').textContent = 'Đặt ngày '+order.date;
+    document.getElementById('update-link').href = 'update-order-status.html?id='+order.id;
+
+    const items = order.items || [{ name:'Sản phẩm mẫu', qty:1, price:order.total }];
+    document.getElementById('detail-content').innerHTML = `
+      <div>
+        <div class="card card-pad" style="margin-bottom:1rem;">
+          <h2 style="font-weight:700;margin-bottom:1rem;">Sản phẩm đặt</h2>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="text-align:left;padding:.5rem;border-bottom:1px solid #e5e7eb;font-size:.8rem;color:#6b7280;">Sản phẩm</th>
+              <th style="text-align:center;padding:.5rem;border-bottom:1px solid #e5e7eb;font-size:.8rem;color:#6b7280;">SL</th>
+              <th style="text-align:right;padding:.5rem;border-bottom:1px solid #e5e7eb;font-size:.8rem;color:#6b7280;">Thành tiền</th>
+            </tr></thead>
+            <tbody>
+              ${items.map(item=>`
+                <tr>
+                  <td style="padding:.75rem .5rem;border-bottom:1px solid #f9fafb;">
+                    <p style="font-weight:500;font-size:.875rem;">${item.name||item.productName}</p>
+                  </td>
+                  <td style="text-align:center;padding:.75rem .5rem;border-bottom:1px solid #f9fafb;">x${item.qty||item.quantity||1}</td>
+                  <td style="text-align:right;padding:.75rem .5rem;border-bottom:1px solid #f9fafb;font-weight:600;">${fmt((item.price||0)*(item.qty||item.quantity||1))}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <div style="display:flex;justify-content:space-between;padding:.75rem 0 0;font-size:.875rem;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:.5rem;">
+            <span>Phí giao hàng</span><span>${order.shippingFee>0?fmt(order.shippingFee):'Miễn phí'}</span>
+          </div>
+          ${order.discount?`<div style="display:flex;justify-content:space-between;padding:.5rem 0;font-size:.875rem;color:#ef4444;"><span>Giảm giá</span><span>-${fmt(order.discount)}</span></div>`:''}
+          <div style="display:flex;justify-content:space-between;padding:.75rem 0 0;font-weight:700;border-top:1px solid #e5e7eb;margin-top:.25rem;">
+            <span>Tổng cộng</span><span style="color:#16a34a;font-size:1.1rem;">${fmt(order.total)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-pad" style="margin-bottom:1rem;">
+          <h2 style="font-weight:700;margin-bottom:1rem;">Trạng thái</h2>
+          <div style="text-align:center;padding:.75rem;">${statusLabel(order.status)}</div>
+        </div>
+
+        <div class="card card-pad" style="margin-bottom:1rem;">
+          <h2 style="font-weight:700;margin-bottom:1rem;">Thông tin khách hàng</h2>
+          <div style="display:flex;flex-direction:column;gap:.5rem;font-size:.875rem;">
+            <div style="display:flex;gap:.5rem;"><span style="color:#6b7280;min-width:60px;">Tên:</span><span style="font-weight:500;">${order.customerName}</span></div>
+            <div style="display:flex;gap:.5rem;"><span style="color:#6b7280;min-width:60px;">SĐT:</span><span>${order.phone||'--'}</span></div>
+            <div style="display:flex;gap:.5rem;"><span style="color:#6b7280;min-width:60px;">Email:</span><span>${order.email||'--'}</span></div>
+            <div style="display:flex;gap:.5rem;"><span style="color:#6b7280;min-width:60px;">Địa chỉ:</span><span>${order.address||order.shippingAddress||'--'}</span></div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <h2 style="font-weight:700;margin-bottom:1rem;">Thanh toán</h2>
+          <div style="font-size:.875rem;">
+            <div style="display:flex;justify-content:space-between;padding:.4rem 0;"><span style="color:#6b7280;">Phương thức</span><span style="font-weight:500;">${order.paymentMethod==='cod'?'COD':order.paymentMethod==='bank'?'Chuyển khoản':'Ví điện tử'}</span></div>
+            <div style="display:flex;justify-content:space-between;padding:.4rem 0;"><span style="color:#6b7280;">Trạng thái</span><span class="badge badge-yellow">${order.paymentStatus||'Chưa thanh toán'}</span></div>
+          </div>
+        </div>
+      </div>`;
+  </script>
+</body>
+</html>

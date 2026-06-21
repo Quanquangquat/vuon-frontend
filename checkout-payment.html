@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thanh toán - VƯƠN</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .payment-opt { display:flex; align-items:center; gap:.75rem; padding:1rem; border:2px solid #e5e7eb; border-radius:.5rem; cursor:pointer; transition:border .2s; margin-bottom:.75rem; }
+    .payment-opt.selected { border-color:#16a34a; background:#f0fdf4; }
+    .payment-opt input[type=radio] { accent-color:#16a34a; }
+  </style>
+</head>
+<body>
+  <header id="site-header"></header>
+  <div class="page-content" style="max-width:700px;">
+    <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Phương thức thanh toán</h1>
+
+    <form id="payment-form">
+      <!-- Promo -->
+      <div class="card card-pad" style="margin-bottom:1.5rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Mã giảm giá</h2>
+        <div style="display:flex;gap:.5rem;">
+          <input type="text" id="promo" class="form-control" placeholder="Nhập mã giảm giá" style="flex:1;">
+          <button type="button" onclick="applyPromo()" class="btn btn-green">Áp dụng</button>
+        </div>
+        <div id="promo-msg" style="display:none;margin-top:.5rem;font-size:.875rem;color:#16a34a;"></div>
+      </div>
+
+      <!-- Payment Methods -->
+      <div class="card card-pad" style="margin-bottom:1.5rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Chọn phương thức thanh toán</h2>
+        ${[['cod','Thanh toán khi nhận hàng (COD)'],['bank','Chuyển khoản ngân hàng'],['wallet','Ví điện tử (Momo, ZaloPay)']].map(([v,l],i)=>`
+          <label class="payment-opt${i===0?' selected':''}" id="opt-${v}" onclick="selectPayment('${v}')">
+            <input type="radio" name="payment" value="${v}" ${i===0?'checked':''}>
+            <svg width="20" height="20" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <span style="font-weight:500;">${l}</span>
+          </label>`).join('')}
+      </div>
+
+      <button type="submit" class="btn btn-green btn-full">Xác nhận đơn hàng</button>
+    </form>
+  </div>
+  <div id="mobile-nav"></div>
+  <footer id="site-footer"></footer>
+  <script src="assets/common.js"></script>
+  <script>
+    function selectPayment(v) {
+      document.querySelectorAll('.payment-opt').forEach(el=>el.classList.remove('selected'));
+      document.getElementById('opt-'+v).classList.add('selected');
+      document.querySelector(`input[value="${v}"]`).checked = true;
+    }
+    function applyPromo() {
+      const code = document.getElementById('promo').value.trim().toUpperCase();
+      const msg = document.getElementById('promo-msg');
+      const promo = PROMOTIONS.find(p=>p.code===code);
+      if(promo) { msg.textContent=`✅ Áp dụng "${promo.title}" thành công!`; msg.style.display='block'; msg.style.color='#16a34a'; }
+      else { msg.textContent='❌ Mã không hợp lệ hoặc đã hết hạn'; msg.style.display='block'; msg.style.color='#ef4444'; }
+    }
+    document.getElementById('payment-form').addEventListener('submit',function(e){
+      e.preventDefault();
+      const method = document.querySelector('input[name="payment"]:checked').value;
+      localStorage.setItem('vuon_payment', method);
+      window.location.href='checkout-confirm.html';
+    });
+  </script>
+</body>
+</html>

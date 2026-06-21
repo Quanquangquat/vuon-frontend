@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xác nhận đơn hàng - VƯƠN</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <div class="page-content" style="max-width:700px;">
+    <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Xác nhận đơn hàng</h1>
+    <div id="confirm-content"></div>
+  </div>
+  <div id="mobile-nav"></div>
+  <footer id="site-footer"></footer>
+  <script src="assets/common.js"></script>
+  <script>
+    const cart = Store.getCart();
+    const subtotal = Store.getCartTotal();
+    const shipping = subtotal>=200000?0:30000;
+    const total = subtotal+shipping;
+    const shipping_info = JSON.parse(localStorage.getItem('vuon_shipping')||'{}');
+    const payment = localStorage.getItem('vuon_payment')||'cod';
+    const paymentLabel = {cod:'Thanh toán khi nhận hàng (COD)', bank:'Chuyển khoản ngân hàng', wallet:'Ví điện tử'};
+
+    document.getElementById('confirm-content').innerHTML = `
+      <div class="card card-pad" style="margin-bottom:1rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Sản phẩm</h2>
+        ${cart.map(item=>`
+          <div style="display:flex;align-items:center;gap:1rem;padding:.75rem 0;border-bottom:1px solid #f3f4f6;">
+            <img src="${item.product.image}" style="width:64px;height:64px;border-radius:.5rem;object-fit:cover;">
+            <div style="flex:1;">
+              <p style="font-weight:500;">${item.product.name}</p>
+              <p style="font-size:.8rem;color:#6b7280;">Số lượng: ${item.quantity}</p>
+            </div>
+            <span style="font-weight:600;">${fmt(item.product.price*item.quantity)}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:1rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Địa chỉ giao hàng</h2>
+        <p style="font-weight:500;">${shipping_info.fullName||''}</p>
+        <p style="color:#6b7280;">${shipping_info.phone||''}</p>
+        <p style="color:#6b7280;">${shipping_info.address||''}</p>
+        ${shipping_info.note?`<p style="color:#6b7280;font-style:italic;">Ghi chú: ${shipping_info.note}</p>`:''}
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:1rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Tổng quan</h2>
+        <div style="display:flex;justify-content:space-between;padding:.4rem 0;color:#6b7280;font-size:.9rem;"><span>Tạm tính:</span><span>${fmt(subtotal)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:.4rem 0;color:#6b7280;font-size:.9rem;"><span>Phí vận chuyển:</span><span>${shipping===0?'Miễn phí':fmt(shipping)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:.75rem 0;border-top:1px solid #e5e7eb;font-weight:700;font-size:1.1rem;"><span>Tổng cộng:</span><span style="color:#16a34a;">${fmt(total)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.875rem;color:#6b7280;"><span>Phương thức:</span><span>${paymentLabel[payment]||payment}</span></div>
+      </div>
+
+      <button onclick="placeOrder()" class="btn btn-green btn-full">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Đặt hàng
+      </button>`;
+
+    async function placeOrder() {
+      const btn = document.querySelector('button[onclick="placeOrder()"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Đang xử lý...'; }
+
+      // Map payment key → backend enum
+      const paymentMap = { cod:'COD', bank:'BANK', wallet:'WALLET' };
+      const payMethod  = paymentMap[payment] || 'COD';
+
+      // Nếu đã đăng nhập → thử gọi API thật
+      if (getToken()) {
+        const synced = await API.syncCartToServer();
+        if (synced) {
+          const result = await API.createOrder(shipping_info, payMethod);
+          if (result.ok) {
+            Store.clearCart();
+            localStorage.removeItem('vuon_shipping');
+            localStorage.removeItem('vuon_payment');
+            window.location.href = 'order-success.html';
+            return;
+          }
+          // API trả lỗi → báo cho user
+          showToast((result.error || 'Đặt hàng thất bại') + '. Vui lòng thử lại.', 'error');
+          if (btn) { btn.disabled = false; btn.innerHTML = '✓ Đặt hàng'; }
+          return;
+        }
+      }
+
+      // Fallback: chưa đăng nhập hoặc sync thất bại → xử lý local
+      Store.clearCart();
+      localStorage.removeItem('vuon_shipping');
+      localStorage.removeItem('vuon_payment');
+      window.location.href = 'order-success.html';
+    }
+  </script>
+</body>
+</html>

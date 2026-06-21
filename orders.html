@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lịch sử đơn hàng - VƯƠN</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <div class="page-content">
+    <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Lịch sử đơn hàng</h1>
+    <div id="orders-list"></div>
+  </div>
+  <div id="mobile-nav"></div>
+  <footer id="site-footer"></footer>
+  <script src="assets/common.js"></script>
+  <script>
+    const el = document.getElementById('orders-list');
+
+    function orderCardHTML(order) {
+      const items = order.items || [];
+      const statusMap = { completed:'Hoàn thành', shipping:'Đang giao', processing:'Đang xử lý', cancelled:'Đã hủy', COMPLETED:'Hoàn thành', SHIPPING:'Đang giao', PROCESSING:'Đang xử lý', CANCELLED:'Đã hủy' };
+      const clsMap   = { completed:'badge-green', shipping:'badge-blue', processing:'badge-yellow', cancelled:'badge-red', COMPLETED:'badge-green', SHIPPING:'badge-blue', PROCESSING:'badge-yellow', CANCELLED:'badge-red' };
+      const status   = order.status || '';
+      const badge    = `<span class="badge ${clsMap[status]||'badge-gray'}">${statusMap[status]||status}</span>`;
+      const dateStr  = order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : '';
+
+      const itemsHTML = items.map(item => {
+        const name = item.productName || item.product?.name || 'Sản phẩm';
+        const img  = item.productImage || item.product?.image || '';
+        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.4rem 0;font-size:.875rem;">
+          ${img ? `<img src="${img}" style="width:48px;height:48px;border-radius:.375rem;object-fit:cover;">` : ''}
+          <span>${name} × ${item.quantity}</span>
+        </div>`;
+      }).join('');
+
+      const canCancel = status === 'processing' || status === 'PROCESSING';
+      const isDone    = status === 'completed'  || status === 'COMPLETED';
+
+      return `
+        <div class="card card-pad" style="margin-bottom:1rem;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
+            <div>
+              <span style="font-weight:700;font-size:1rem;">${String(order.id).substring(0,8).toUpperCase()}</span>
+              <span style="font-size:.8rem;color:#9ca3af;margin-left:.5rem;">${dateStr}</span>
+            </div>
+            ${badge}
+          </div>
+          <div style="margin:.75rem 0;border-top:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;padding:.5rem 0;">
+            ${itemsHTML || '<span style="color:#9ca3af;font-size:.875rem;">Không có sản phẩm</span>'}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.875rem;color:#6b7280;">${order.paymentMethod || ''}</span>
+            <span style="font-weight:700;color:#16a34a;">${fmt(order.total || 0)}</span>
+          </div>
+          <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+            <a href="track-order.html" class="btn btn-gray btn-sm">Theo dõi</a>
+            ${canCancel ? `<button onclick="doCancelOrder('${order.id}')" class="btn btn-sm" style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;">Hủy đơn</button>` : ''}
+            ${isDone    ? '<button class="btn btn-outline btn-sm">Mua lại</button>' : ''}
+          </div>
+        </div>`;
+    }
+
+    async function loadOrders() {
+      el.innerHTML = '<p style="text-align:center;color:#6b7280;padding:3rem 0;">Đang tải đơn hàng...</p>';
+      let orders;
+      if (getToken()) {
+        orders = await API.getOrders();
+      } else {
+        orders = MOCK_ORDERS;
+      }
+      if (!orders.length) {
+        el.innerHTML = `
+          <div style="text-align:center;padding:4rem 0;">
+            <div style="font-size:3rem;margin-bottom:1rem;">📦</div>
+            <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:.5rem;">Chưa có đơn hàng</h2>
+            <p style="color:#6b7280;margin-bottom:1.5rem;">Hãy mua sắm để tạo đơn hàng đầu tiên!</p>
+            <a href="products.html" class="btn btn-green">Mua sắm ngay</a>
+          </div>`;
+        return;
+      }
+      el.innerHTML = orders.map(orderCardHTML).join('');
+    }
+
+    async function doCancelOrder(id) {
+      if (!confirm('Bạn có chắc muốn hủy đơn hàng này?')) return;
+      const r = await API.cancelOrder(id);
+      if (r.ok) { showToast('Đã hủy đơn hàng'); loadOrders(); }
+      else showToast(r.error || 'Không thể hủy đơn', 'error');
+    }
+
+    loadOrders();
+  </script>
+</body>
+</html>

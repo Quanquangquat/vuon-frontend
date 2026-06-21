@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đơn hàng - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>body{background:#f3f4f6;} .admin-layout{display:flex;min-height:100vh;} .main-panel{flex:1;padding:2rem;overflow-x:hidden;} .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);} .data-table th{text-align:left;padding:.75rem 1rem;background:#f9fafb;font-size:.8rem;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;} .data-table td{padding:.75rem 1rem;border-bottom:1px solid #f9fafb;font-size:.875rem;} .data-table tr:hover td{background:#fafafa;} .filter-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}</style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem;font-weight:800;">Quản lý đơn hàng</h1>
+        <p style="color:#6b7280;font-size:.875rem;" id="order-count-text"></p>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="search-order" placeholder="Tìm theo mã đơn, khách hàng..." style="flex:1;min-width:200px;padding:.6rem 1rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;outline:none;" oninput="filterOrders()">
+        <select id="status-filter" class="form-control" style="max-width:170px;" onchange="filterOrders()">
+          <option value="">Tất cả trạng thái</option>
+          <option value="pending">Chờ xử lý</option>
+          <option value="confirmed">Đã xác nhận</option>
+          <option value="shipping">Đang giao</option>
+          <option value="delivered">Đã giao</option>
+          <option value="cancelled">Đã hủy</option>
+        </select>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Mã đơn</th><th>Khách hàng</th><th>Điện thoại</th>
+            <th>Sản phẩm</th><th>Tổng tiền</th><th>Trạng thái</th><th>Ngày đặt</th><th>Hành động</th>
+          </tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+
+    let allOrders = [];
+    let filtered  = [];
+
+    function applyFilter() {
+      const q = document.getElementById('search-order').value.toLowerCase();
+      const s = document.getElementById('status-filter').value;
+      filtered = allOrders.filter(o => {
+        const cname = (o.user?.name || o.shippingName || '').toLowerCase();
+        const oid   = String(o.id).toLowerCase();
+        return (!q || oid.includes(q) || cname.includes(q)) &&
+               (!s || o.status === s  || o.status === s.toUpperCase());
+      });
+      renderTable();
+    }
+
+    const STATUS_OPTIONS = ['processing','shipping','completed','cancelled'];
+
+    function renderTable() {
+      document.getElementById('order-count-text').textContent = filtered.length + ' đơn hàng';
+      document.getElementById('orders-tbody').innerHTML = filtered.map(o => {
+        const customerName = o.user?.name || o.shippingName || '--';
+        const phone        = o.user?.phone || o.shippingPhone || '--';
+        const shortId      = String(o.id).substring(0,8).toUpperCase();
+        const dateStr      = o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '--';
+        const statusOpts   = STATUS_OPTIONS.map(s =>
+          `<option value="${s}" ${o.status===s||o.status===s.toUpperCase()?'selected':''}>${statusLabel(s).replace(/<[^>]+>/g,'')}</option>`
+        ).join('');
+        return `<tr>
+          <td style="font-weight:700;color:#2563eb;">#${shortId}</td>
+          <td>${customerName}</td>
+          <td>${phone}</td>
+          <td style="color:#6b7280;">${o.items?.length||1} sản phẩm</td>
+          <td style="font-weight:600;color:#16a34a;">${fmt(o.total||0)}</td>
+          <td>${statusLabel(o.status)}</td>
+          <td style="color:#9ca3af;font-size:.8rem;">${dateStr}</td>
+          <td>
+            <div style="display:flex;gap:.25rem;align-items:center;">
+              <select onchange="updateStatus('${o.id}', this.value)"
+                style="font-size:.75rem;padding:.25rem .4rem;border:1px solid #e5e7eb;border-radius:.375rem;cursor:pointer;">
+                ${statusOpts}
+              </select>
+            </div>
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:2rem;">Chưa có đơn hàng</td></tr>';
+    }
+
+    async function updateStatus(id, status) {
+      const r = await API.adminUpdateOrderStatus(id, status);
+      if (r.ok) {
+        const order = allOrders.find(o => o.id === id);
+        if (order) order.status = status;
+        showToast('Đã cập nhật trạng thái');
+        renderTable();
+      } else {
+        showToast(r.error || 'Cập nhật thất bại', 'error');
+      }
+    }
+
+    async function loadOrders() {
+      document.getElementById('orders-tbody').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:2rem;">Đang tải...</td></tr>';
+      allOrders = await API.adminGetOrders({ limit: 100 });
+      filtered  = [...allOrders];
+      renderTable();
+    }
+
+    document.getElementById('search-order').addEventListener('input', applyFilter);
+    document.getElementById('status-filter').addEventListener('change', applyFilter);
+
+    loadOrders();
+  </script>
+</body>
+</html>

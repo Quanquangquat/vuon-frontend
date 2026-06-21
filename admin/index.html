@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { background:#f3f4f6; }
+    .admin-layout { display:flex; min-height:100vh; }
+    .main-panel { flex:1; padding:2rem; overflow-x:hidden; }
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .stat-card { background:#fff; border-radius:.75rem; padding:1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+    .stat-value { font-size:1.75rem; font-weight:800; margin:.25rem 0; }
+    .stat-change { font-size:.75rem; }
+    .chart-card { background:#fff; border-radius:.75rem; padding:1.5rem; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+    .data-table { width:100%; border-collapse:collapse; }
+    .data-table th { text-align:left; padding:.75rem 1rem; background:#f9fafb; font-size:.8rem; font-weight:600; color:#6b7280; border-bottom:1px solid #e5e7eb; }
+    .data-table td { padding:.75rem 1rem; border-bottom:1px solid #f9fafb; font-size:.875rem; }
+    @media(max-width:768px){ .main-panel{ padding:1rem; } }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:800;">Dashboard</h1>
+          <p style="color:#6b7280;font-size:.875rem;">Tổng quan hoạt động kinh doanh</p>
+        </div>
+        <div style="font-size:.875rem;color:#6b7280;" id="dash-date"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <p style="font-size:.8rem;color:#6b7280;">Doanh thu tháng</p>
+          <div class="stat-value" style="color:#16a34a;">12.4M</div>
+          <p class="stat-change" style="color:#16a34a;">↑ +18% so với tháng trước</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:.8rem;color:#6b7280;">Đơn hàng</p>
+          <div class="stat-value" style="color:#2563eb;">87</div>
+          <p class="stat-change" style="color:#16a34a;">↑ +12 đơn</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:.8rem;color:#6b7280;">Khách hàng mới</p>
+          <div class="stat-value" style="color:#8b5cf6;">34</div>
+          <p class="stat-change" style="color:#16a34a;">↑ +8 người</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:.8rem;color:#6b7280;">Sản phẩm</p>
+          <div class="stat-value" style="color:#f59e0b;" id="product-count">0</div>
+          <p class="stat-change" style="color:#6b7280;">Đang bán</p>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div class="chart-card">
+          <h3 style="font-weight:700;margin-bottom:1rem;">Doanh thu 7 ngày qua</h3>
+          <canvas id="revenue-chart" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3 style="font-weight:700;margin-bottom:1rem;">Danh mục sản phẩm</h3>
+          <canvas id="cat-chart" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent orders -->
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <h3 style="font-weight:700;">Đơn hàng gần đây</h3>
+          <a href="orders.html" style="font-size:.8rem;color:#2563eb;text-decoration:none;">Xem tất cả →</a>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="orders-table"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+    document.getElementById('dash-date').textContent = new Date().toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+    const catLabel = c => ({vegetable:'Rau củ', flower:'Hoa cảnh', combo:'Combo', accessory:'Phụ kiện'})[c] || c;
+
+    async function loadDashboard() {
+      // Load stats
+      const stats = await API.adminDashboard();
+      if (stats) {
+        document.getElementById('product-count').textContent = stats.totalProducts ?? '--';
+        // Cập nhật doanh thu & đơn hàng nếu có phần tử
+        const statCards = document.querySelectorAll('.stat-value');
+        if (statCards[0] && stats.totalRevenue != null) {
+          const rev = stats.totalRevenue;
+          statCards[0].textContent = rev >= 1000000 ? (rev/1000000).toFixed(1)+'M' : (rev/1000).toFixed(0)+'k';
+        }
+        const byStatus = stats.ordersByStatus || {};
+        const totalOrders = (byStatus.processing||0)+(byStatus.shipping||0)+(byStatus.completed||0)+(byStatus.cancelled||0);
+        if (statCards[1]) statCards[1].textContent = totalOrders;
+        if (statCards[2]) statCards[2].textContent = stats.totalUsers ?? '--';
+      }
+
+      // Revenue chart (mock data - backend chưa có endpoint 7 ngày)
+      new Chart(document.getElementById('revenue-chart').getContext('2d'), {
+        type:'line',
+        data:{
+          labels:['T2','T3','T4','T5','T6','T7','CN'],
+          datasets:[{
+            label:'Doanh thu (nghìn đồng)',
+            data:[1200,980,1500,1800,1350,2200,1700],
+            borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,.08)', fill:true, tension:.4
+          }]
+        },
+        options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true} } }
+      });
+
+      // Category chart từ backend products
+      const products = await API.adminGetProducts({ limit: 100 });
+      const catCounts = {};
+      products.forEach(p => { catCounts[p.category] = (catCounts[p.category]||0)+1; });
+      new Chart(document.getElementById('cat-chart').getContext('2d'), {
+        type:'doughnut',
+        data:{
+          labels: Object.keys(catCounts).map(catLabel),
+          datasets:[{ data:Object.values(catCounts), backgroundColor:['#16a34a','#f59e0b','#8b5cf6','#2563eb'] }]
+        },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
+      });
+
+      // Recent orders từ backend
+      const orders = await API.adminGetOrders({ limit: 5 });
+      const tbody = orders.map(o => {
+        const customerName = o.user?.name || o.shippingName || '--';
+        const shortId = String(o.id).substring(0,8).toUpperCase();
+        return `<tr>
+          <td style="font-weight:600;color:#2563eb;">#${shortId}</td>
+          <td>${customerName}</td>
+          <td style="color:#6b7280;">${o.items?.length||1} sản phẩm</td>
+          <td style="font-weight:600;">${fmt(o.total||0)}</td>
+          <td>${statusLabel(o.status)}</td>
+          <td><a href="order-detail.html?id=${o.id}" style="font-size:.8rem;color:#2563eb;text-decoration:none;">Chi tiết</a></td>
+        </tr>`;
+      }).join('');
+      document.getElementById('orders-table').innerHTML = `
+        <thead><tr>
+          <th>Mã đơn</th><th>Khách hàng</th><th>Sản phẩm</th><th>Tổng tiền</th><th>Trạng thái</th><th>Hành động</th>
+        </tr></thead>
+        <tbody>${tbody || '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:2rem;">Chưa có đơn hàng</td></tr>'}</tbody>`;
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

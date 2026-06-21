@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thông tin giao hàng - VƯƠN</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <div class="page-content" style="max-width:700px;">
+    <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Thông tin giao hàng</h1>
+
+    <!-- Steps -->
+    <div style="display:flex;margin-bottom:2rem;gap:0;">
+      ${[['1','Địa chỉ',true],['2','Thanh toán',false],['3','Xác nhận',false]].map(([n,l,a])=>`
+        <div style="flex:1;text-align:center;position:relative;">
+          <div style="width:32px;height:32px;border-radius:50%;${a?'background:#16a34a;color:#fff;':'background:#e5e7eb;color:#9ca3af;'}border:2px solid ${a?'#16a34a':'#e5e7eb'};display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:.8rem;font-weight:700;position:relative;z-index:1;">${n}</div>
+          <div style="font-size:.75rem;margin-top:.5rem;${a?'color:#16a34a;':'color:#9ca3af;'}">${l}</div>
+        </div>`).join('<div style="flex:1;height:2px;background:#e5e7eb;margin-top:16px;"></div>')}
+    </div>
+
+    <div class="card card-pad">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;">
+        <div style="width:40px;height:40px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <h2 style="font-size:1.1rem;font-weight:700;">Địa chỉ nhận hàng</h2>
+      </div>
+
+      <form id="shipping-form">
+        <div class="form-group">
+          <label>Họ và tên</label>
+          <input type="text" id="fullName" class="form-control" placeholder="Nguyễn Văn A" required>
+        </div>
+        <div class="form-group">
+          <label>Số điện thoại</label>
+          <input type="tel" id="phone" class="form-control" placeholder="0901234567" required>
+        </div>
+        <div class="form-group">
+          <label>Địa chỉ</label>
+          <textarea id="address" class="form-control" placeholder="123 Đường ABC, Quận 1, TP.HCM" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ghi chú (tùy chọn)</label>
+          <textarea id="note" class="form-control" placeholder="Ghi chú cho người giao hàng..." rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-green btn-full">Tiếp tục</button>
+      </form>
+    </div>
+  </div>
+  <div id="mobile-nav"></div>
+  <footer id="site-footer"></footer>
+  <script src="assets/common.js"></script>
+  <script>
+    document.getElementById('shipping-form').addEventListener('submit',function(e){
+      e.preventDefault();
+      const info = { fullName:document.getElementById('fullName').value, phone:document.getElementById('phone').value, address:document.getElementById('address').value, note:document.getElementById('note').value };
+      localStorage.setItem('vuon_shipping', JSON.stringify(info));
+      window.location.href='checkout-payment.html';
+    });
+    // Pre-fill if user logged in
+    const user = Store.getUser();
+    if(user) { document.getElementById('fullName').value = user.name||''; document.getElementById('phone').value = user.phone||''; }
+  </script>
+</body>
+</html>

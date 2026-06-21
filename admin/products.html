@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sản phẩm - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    body{background:#f3f4f6;}
+    .admin-layout{display:flex;min-height:100vh;}
+    .main-panel{flex:1;padding:2rem;overflow-x:hidden;}
+    .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+    .data-table th{text-align:left;padding:.75rem 1rem;background:#f9fafb;font-size:.8rem;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;}
+    .data-table td{padding:.75rem 1rem;border-bottom:1px solid #f9fafb;font-size:.875rem;vertical-align:middle;}
+    .data-table tr:hover td{background:#fafafa;}
+    .search-bar{display:flex;gap:.5rem;margin-bottom:1rem;}
+    .search-bar input{flex:1;padding:.6rem 1rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;outline:none;}
+    .search-bar input:focus{border-color:#16a34a;}
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:800;">Quản lý sản phẩm</h1>
+          <p style="color:#6b7280;font-size:.875rem;" id="prod-count-text"></p>
+        </div>
+        <a href="product-form.html" class="btn btn-green">+ Thêm sản phẩm</a>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="search-prod" placeholder="Tìm sản phẩm..." oninput="filterProducts()">
+        <select id="cat-filter" class="form-control" style="max-width:160px;" onchange="filterProducts()">
+          <option value="">Tất cả danh mục</option>
+          <option value="vegetable">Rau củ</option>
+          <option value="flower">Hoa cảnh</option>
+          <option value="tool">Dụng cụ</option>
+          <option value="combo">Combo</option>
+        </select>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>#</th><th>Ảnh</th><th>Tên sản phẩm</th><th>Danh mục</th>
+            <th>Giá</th><th>Tồn kho</th><th>Đánh giá</th><th>Trạng thái</th><th>Hành động</th>
+          </tr></thead>
+          <tbody id="product-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+
+    const catLabel = c => ({vegetable:'Rau củ', flower:'Hoa cảnh', combo:'Combo', accessory:'Phụ kiện'})[c] || c;
+    let allProducts = [];
+    let filtered    = [];
+
+    function applyFilter() {
+      const q   = document.getElementById('search-prod').value.toLowerCase();
+      const cat = document.getElementById('cat-filter').value;
+      filtered  = allProducts.filter(p =>
+        (!q   || p.name.toLowerCase().includes(q)) &&
+        (!cat || p.category === cat)
+      );
+      renderTable();
+    }
+
+    function renderTable() {
+      document.getElementById('prod-count-text').textContent = filtered.length + ' sản phẩm';
+      document.getElementById('product-tbody').innerHTML = filtered.map((p, i) => `
+        <tr>
+          <td style="color:#9ca3af;">${i+1}</td>
+          <td><img src="${p.image||''}" alt="${p.name}" style="width:44px;height:44px;object-fit:cover;border-radius:.375rem;"
+              onerror="this.src='https://placehold.co/44x44/f0fdf4/16a34a?text=${encodeURIComponent((p.name||'?')[0])}'"></td>
+          <td style="font-weight:600;max-width:200px;">${p.name}</td>
+          <td><span class="badge badge-green" style="font-size:.7rem;">${catLabel(p.category)}</span></td>
+          <td style="font-weight:600;color:#16a34a;">${fmt(p.price||0)}</td>
+          <td>${p.stock||0}</td>
+          <td>⭐ ${p.rating||0} <span style="color:#9ca3af;font-size:.75rem;">(${p.reviewsCount||p.reviews||0})</span></td>
+          <td><span class="badge ${p.inStock?'badge-green':'badge-red'}">${p.inStock?'Còn hàng':'Hết hàng'}</span></td>
+          <td>
+            <div style="display:flex;gap:.25rem;">
+              <a href="product-form.html?id=${p.id}" class="btn btn-outline" style="font-size:.75rem;padding:.3rem .6rem;">Sửa</a>
+              <button onclick="deleteProduct('${p.id}')" class="btn" style="font-size:.75rem;padding:.3rem .6rem;background:#fee2e2;color:#ef4444;border:none;">Xóa</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Xóa sản phẩm này? (Sản phẩm sẽ bị ẩn, không xóa hẳn)')) return;
+      const r = await API.adminDeleteProduct(id);
+      if (r.ok) {
+        allProducts = allProducts.filter(p => p.id !== id);
+        applyFilter();
+        showToast('Đã ẩn sản phẩm');
+      } else {
+        showToast(r.error || 'Xóa thất bại', 'error');
+      }
+    }
+
+    async function loadProducts() {
+      document.getElementById('product-tbody').innerHTML =
+        '<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:2rem;">Đang tải...</td></tr>';
+      allProducts = await API.adminGetProducts({ limit: 100 });
+      filtered    = [...allProducts];
+      renderTable();
+    }
+
+    // Gắn sự kiện filter
+    document.getElementById('search-prod').addEventListener('input', applyFilter);
+    document.getElementById('cat-filter').addEventListener('change', applyFilter);
+
+    loadProducts();
+  </script>
+</body>
+</html>

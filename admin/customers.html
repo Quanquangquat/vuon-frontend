@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khách hàng - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>body{background:#f3f4f6;} .admin-layout{display:flex;min-height:100vh;} .main-panel{flex:1;padding:2rem;overflow-x:hidden;} .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);} .data-table th{text-align:left;padding:.75rem 1rem;background:#f9fafb;font-size:.8rem;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;} .data-table td{padding:.75rem 1rem;border-bottom:1px solid #f9fafb;font-size:.875rem;} .data-table tr:hover td{background:#fafafa;} .cust-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#4ade80);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.875rem;}</style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem;font-weight:800;">Quản lý khách hàng</h1>
+        <p style="color:#6b7280;font-size:.875rem;" id="cust-count"></p>
+      </div>
+
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+        <input type="text" id="search-cust" placeholder="Tìm theo tên, email, SĐT..." style="flex:1;padding:.6rem 1rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;outline:none;" oninput="filterCust()">
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>#</th><th>Khách hàng</th><th>Email</th><th>Điện thoại</th>
+            <th>Đơn hàng</th><th>Tổng chi tiêu</th><th>Ngày đăng ký</th><th>Hành động</th>
+          </tr></thead>
+          <tbody id="cust-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+
+    let allCustomers = [];
+    let filtered     = [];
+
+    function applyFilter() {
+      const q = document.getElementById('search-cust').value.toLowerCase();
+      filtered = allCustomers.filter(c =>
+        !q ||
+        (c.name  ||'').toLowerCase().includes(q) ||
+        (c.email ||'').toLowerCase().includes(q) ||
+        (c.phone ||'').includes(q)
+      );
+      renderTable();
+    }
+
+    function renderTable() {
+      document.getElementById('cust-count').textContent = filtered.length + ' khách hàng';
+      document.getElementById('cust-tbody').innerHTML = filtered.map((c, i) => {
+        const name     = c.name || c.fullName || '--';
+        const joinDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString('vi-VN') : '--';
+        return `<tr>
+          <td style="color:#9ca3af;">${i+1}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <div class="cust-avatar">${name.charAt(0).toUpperCase()}</div>
+              <div>
+                <span style="font-weight:600;display:block;">${name}</span>
+                ${c.role === 'admin' ? '<span style="font-size:.7rem;background:#fef3c7;color:#92400e;padding:.1rem .4rem;border-radius:.25rem;">Admin</span>' : ''}
+              </div>
+            </div>
+          </td>
+          <td style="color:#6b7280;">${c.email||'--'}</td>
+          <td>${c.phone||'--'}</td>
+          <td style="text-align:center;font-weight:600;">${c.totalOrders||0}</td>
+          <td style="font-weight:600;color:#16a34a;">${fmt(c.totalSpent||0)}</td>
+          <td style="color:#9ca3af;font-size:.8rem;">${joinDate}</td>
+          <td>
+            <a href="customer-detail.html?id=${c.id}" class="btn btn-outline" style="font-size:.75rem;padding:.3rem .6rem;">Xem</a>
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:2rem;">Chưa có khách hàng</td></tr>';
+    }
+
+    async function loadCustomers() {
+      document.getElementById('cust-tbody').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:2rem;">Đang tải...</td></tr>';
+      allCustomers = await API.adminGetCustomers({ limit: 100 });
+      filtered     = [...allCustomers];
+      renderTable();
+    }
+
+    document.getElementById('search-cust').addEventListener('input', applyFilter);
+
+    loadCustomers();
+  </script>
+</body>
+</html>

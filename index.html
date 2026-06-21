@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VƯƠN - Trồng cây thông minh</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+    .welcome-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .welcome-card { background: #fff; border-radius: 1rem; box-shadow: 0 10px 40px rgba(0,0,0,.12); padding: 2.5rem 2rem; width: 100%; max-width: 420px; text-align: center; }
+    .logo-ring { position: relative; display: inline-block; margin-bottom: 1.5rem; }
+    .logo-main { width: 96px; height: 96px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+    .logo-badge { position: absolute; top: -4px; right: -4px; width: 32px; height: 32px; background: #4ade80; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .welcome-card h1 { font-size: 2.5rem; font-weight: 700; color: #16a34a; margin-bottom: .5rem; }
+    .welcome-card > p { color: #6b7280; margin-bottom: 2rem; }
+    .slogan-box { background: #f0fdf4; border-radius: .75rem; padding: 1.25rem; margin-bottom: 2rem; }
+    .slogan-box p { color: #166534; font-style: italic; margin-top: .5rem; }
+    .btn-stack { display: flex; flex-direction: column; gap: .75rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb; }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: #16a34a; }
+    .stat-lbl { font-size: .75rem; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="welcome-wrap">
+    <div class="welcome-card">
+      <div class="logo-ring">
+        <div class="logo-main">
+          <svg width="48" height="48" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M7 20h10M12 20V10m0 0C12 5 7 3 3 3s3 7 9 7zm0 0c0-5 5-7 9-7s-3 7-9 7"/></svg>
+        </div>
+        <div class="logo-badge">
+          <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M2 2s6 0 10 4c2 2 3 5 3 8M12 14c-2 4-5 6-8 6"/><path d="M22 2c-4 0-10 2-10 12"/></svg>
+        </div>
+      </div>
+      <h1>VƯƠN</h1>
+      <p>Nền tảng bán cây rau, cây hoa & AI tư vấn trồng cây</p>
+      <div class="slogan-box">
+        <svg width="32" height="32" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24" style="margin:0 auto"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        <p>"Trồng cây, vươn xa - Cuộc sống xanh từ ban công nhà bạn"</p>
+      </div>
+      <div class="btn-stack">
+        <a href="login.html" class="btn btn-green">Đăng nhập</a>
+        <a href="register.html" class="btn btn-outline">Đăng ký</a>
+        <a href="home.html" class="btn btn-gray">Xem nhanh</a>
+      </div>
+      <div class="stats-row">
+        <div><div class="stat-num">500+</div><div class="stat-lbl">Loại cây</div></div>
+        <div><div class="stat-num">AI</div><div class="stat-lbl">Tư vấn</div></div>
+        <div><div class="stat-num">24/7</div><div class="stat-lbl">Hỗ trợ</div></div>
+      </div>
+    </div>
+  </div>
+  <script src="assets/common.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cập nhật đơn hàng - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>body{background:#f3f4f6;} .admin-layout{display:flex;min-height:100vh;} .main-panel{flex:1;padding:2rem;overflow-x:hidden;} .status-option{display:flex;align-items:center;gap:.75rem;padding:1rem;border:2px solid #e5e7eb;border-radius:.75rem;cursor:pointer;margin-bottom:.75rem;transition:all .2s;} .status-option:hover{border-color:#16a34a;background:#f0fdf4;} .status-option.selected{border-color:#16a34a;background:#f0fdf4;} </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel" style="max-width:600px;">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;">
+        <a href="orders.html" style="color:#6b7280;text-decoration:none;font-size:1.25rem;">‹</a>
+        <h1 style="font-size:1.5rem;font-weight:800;">Cập nhật trạng thái</h1>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <p style="font-size:.875rem;color:#6b7280;">Đơn hàng</p>
+            <p style="font-size:1.25rem;font-weight:700;" id="order-title">#--</p>
+          </div>
+          <div id="current-status"></div>
+        </div>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:1rem;">
+        <h2 style="font-weight:700;margin-bottom:1rem;">Chọn trạng thái mới</h2>
+        <div id="status-options"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Ghi chú (tuỳ chọn)</label>
+        <textarea id="note" class="form-control" rows="3" placeholder="Ghi chú cho đơn hàng..."></textarea>
+      </div>
+
+      <button onclick="updateStatus()" class="btn btn-green btn-full">Cập nhật</button>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+    const id = getParam('id');
+    const order = MOCK_ORDERS.find(o=>o.id==id)||MOCK_ORDERS[0];
+    let selectedStatus = order.status;
+
+    document.getElementById('order-title').textContent = '#'+order.id+' - '+order.customerName;
+    document.getElementById('current-status').innerHTML = 'Hiện tại: '+statusLabel(order.status);
+
+    const statuses=[
+      {value:'pending',label:'⏳ Chờ xử lý',desc:'Đơn vừa được đặt'},
+      {value:'confirmed',label:'✅ Đã xác nhận',desc:'Đã xác nhận và chuẩn bị hàng'},
+      {value:'shipping',label:'🚚 Đang giao hàng',desc:'Đơn đang trên đường giao'},
+      {value:'delivered',label:'✅ Đã giao thành công',desc:'Khách đã nhận được hàng'},
+      {value:'cancelled',label:'❌ Đã hủy',desc:'Đơn bị hủy'},
+    ];
+
+    document.getElementById('status-options').innerHTML = statuses.map(s=>`
+      <div class="status-option ${s.value===selectedStatus?'selected':''}" id="opt-${s.value}" onclick="selectStatus('${s.value}')">
+        <div style="flex:1;">
+          <p style="font-weight:600;">${s.label}</p>
+          <p style="font-size:.8rem;color:#6b7280;">${s.desc}</p>
+        </div>
+        <div id="radio-${s.value}" style="width:18px;height:18px;border-radius:50%;border:2px solid ${s.value===selectedStatus?'#16a34a':'#d1d5db'};background:${s.value===selectedStatus?'#16a34a':'#fff'};"></div>
+      </div>`).join('');
+
+    function selectStatus(val) {
+      selectedStatus=val;
+      statuses.forEach(s=>{
+        const opt=document.getElementById('opt-'+s.value);
+        const radio=document.getElementById('radio-'+s.value);
+        if(s.value===val){
+          opt.classList.add('selected');
+          radio.style.borderColor='#16a34a'; radio.style.background='#16a34a';
+        } else {
+          opt.classList.remove('selected');
+          radio.style.borderColor='#d1d5db'; radio.style.background='#fff';
+        }
+      });
+    }
+
+    function updateStatus() {
+      const note=document.getElementById('note').value;
+      showToast('Đã cập nhật trạng thái đơn #'+order.id);
+      setTimeout(()=>location.href='orders.html',1000);
+    }
+  </script>
+</body>
+</html>

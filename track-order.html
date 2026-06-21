@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theo dõi đơn hàng - VƯƠN</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header id="site-header"></header>
+  <div class="page-content" style="max-width:700px;">
+    <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:1.5rem;">Theo dõi đơn hàng</h1>
+
+    <div class="card card-pad" style="margin-bottom:1.5rem;">
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+        <input type="text" id="order-id" class="form-control" placeholder="Nhập mã đơn hàng (VD: ORD001)">
+        <button onclick="searchOrder()" class="btn btn-green">Tìm</button>
+      </div>
+      <div id="track-result"></div>
+    </div>
+
+    <!-- Default: show ORD002 -->
+    <div class="card card-pad" id="default-track">
+      <h2 style="font-weight:700;margin-bottom:1.5rem;">Đơn hàng ORD002 - Đang giao</h2>
+      <div class="order-steps">
+        ${[['Đã đặt hàng','03/03/2026 10:30',true],['Đang xử lý','03/03/2026 11:00',true],['Đang giao','',false],['Hoàn thành','',false]].map((s,i,arr)=>`
+          <div class="step-item${s[2]?' done':''}">
+            <div class="step-dot">${s[2]?'✓':(i+1)}</div>
+            <div class="step-label">${s[0]}</div>
+            ${s[1]?`<div class="step-date">${s[1]}</div>`:''}
+          </div>
+          ${i<arr.length-1?'<div style="flex:1;height:2px;margin-top:16px;background:'+(s[2]&&arr[i+1][2]?'#16a34a':'#e5e7eb')+'"></div>':''}`).join('')}
+      </div>
+      <div style="margin-top:1.5rem;padding:1rem;background:#f0fdf4;border-radius:.5rem;">
+        <p style="font-size:.875rem;color:#166534;">📦 Dự kiến giao hàng: <strong>05/03/2026</strong></p>
+        <p style="font-size:.875rem;color:#166534;margin-top:.25rem;">🚚 Đang trên đường giao hàng đến bạn</p>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-nav"></div>
+  <footer id="site-footer"></footer>
+  <script src="assets/common.js"></script>
+  <script>
+    function searchOrder() {
+      const id = document.getElementById('order-id').value.trim().toUpperCase();
+      const order = MOCK_ORDERS.find(o=>o.id===id);
+      const res = document.getElementById('track-result');
+      if(!order) { res.innerHTML='<div class="alert alert-error">Không tìm thấy đơn hàng</div>'; return; }
+      document.getElementById('default-track').style.display='none';
+      res.innerHTML=`<div class="alert alert-success">Tìm thấy đơn hàng <strong>${order.id}</strong> - Tổng: ${fmt(order.total)} - ${statusLabel(order.status)}</div>
+        <a href="orders.html" class="btn btn-outline btn-sm">Xem chi tiết</a>`;
+    }
+  </script>
+</body>
+</html>
