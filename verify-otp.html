@@ -34,10 +34,14 @@
         <input class="otp-input" type="text" maxlength="1">
       </div>
 
+      <div id="dev-otp-hint" class="alert alert-info" style="display:none;margin-bottom:1rem;text-align:center;">
+        🔧 <strong>Chế độ thử nghiệm</strong> — mã OTP của bạn: <strong id="dev-otp-code" style="letter-spacing:2px;"></strong>
+      </div>
+
       <button id="verify-btn" onclick="verifyOTP()" class="btn btn-green btn-full" disabled>Xác nhận</button>
 
       <p style="text-align:center;margin-top:1rem;font-size:.875rem;color:#6b7280;">
-        Không nhận được mã? <button onclick="showToast('Đã gửi lại mã OTP!')" style="background:none;border:none;color:#16a34a;cursor:pointer;">Gửi lại</button>
+        Không nhận được mã? <button onclick="resendOTP()" style="background:none;border:none;color:#16a34a;cursor:pointer;">Gửi lại</button>
       </p>
       <div class="alert alert-warning" style="margin-top:1rem;">⏱️ Mã OTP có hiệu lực trong 5 phút</div>
     </div>
@@ -61,6 +65,48 @@
       const full = [...inputs].every(i=>i.value);
       btn.disabled = !full;
       btn.style.opacity = full ? '1' : '.5';
+    }
+
+    // Điền sẵn 6 ô OTP từ một chuỗi mã
+    function fillOtp(code) {
+      if(!code) return;
+      [...code].slice(0,6).forEach((c,i)=>{ if(inputs[i]) inputs[i].value = c; });
+      checkFull();
+    }
+
+    // Hiển thị mã OTP ở chế độ dev (backend trả về khi chưa bật gửi mail thật)
+    function showDevOtp() {
+      const code = sessionStorage.getItem('dev_otp');
+      if(code) {
+        document.getElementById('dev-otp-code').textContent = code;
+        document.getElementById('dev-otp-hint').style.display = 'block';
+        fillOtp(code);
+      }
+    }
+
+    // Hiển thị email đang xác thực (che bớt)
+    (function initOtpPage(){
+      const email = sessionStorage.getItem('pending_email') || '';
+      if(email) {
+        const masked = email.replace(/^(.{2}).*(@.*)$/, '$1***$2');
+        const elEmail = document.querySelector('.auth-card p:nth-of-type(2)');
+        if(elEmail) elEmail.textContent = masked;
+      }
+      showDevOtp();
+    })();
+
+    // Gửi lại OTP (chế độ dev sẽ cập nhật mã mới hiển thị)
+    async function resendOTP() {
+      const email = sessionStorage.getItem('pending_email') || '';
+      const otpType = sessionStorage.getItem('otp_type') || 'verify';
+      if(!email) { showToast('Không tìm thấy email, vui lòng đăng ký lại', 'error'); return; }
+      const r = await API.resendOtp(email, otpType === 'reset' ? 'reset_password' : 'verify');
+      if(r.ok) {
+        if(r.devOtp) { sessionStorage.setItem('dev_otp', r.devOtp); showDevOtp(); }
+        showToast('Đã gửi lại mã OTP!');
+      } else {
+        showToast(r.error || 'Không gửi lại được mã', 'error');
+      }
     }
 
     async function verifyOTP() {

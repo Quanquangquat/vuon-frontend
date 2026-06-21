@@ -87,10 +87,14 @@
       const result = await API.register(name || email.split('@')[0], email, pwd, phone);
       btn.textContent = 'Tạo tài khoản'; btn.disabled = false;
       if(result.ok) {
-        showToast('Đăng ký thành công! Vui lòng kiểm tra email để xác thực.');
+        showToast('Đăng ký thành công! Nhập mã OTP để xác thực.');
         // Lưu email tạm để trang verify-otp dùng
         sessionStorage.setItem('pending_email', email);
-        setTimeout(()=>{ window.location.href='verify-otp.html'; }, 1500);
+        sessionStorage.setItem('otp_type', 'verify');
+        // Chế độ dev: backend trả sẵn mã OTP để hiển thị trên màn hình
+        if(result.devOtp) sessionStorage.setItem('dev_otp', result.devOtp);
+        else sessionStorage.removeItem('dev_otp');
+        setTimeout(()=>{ window.location.href='verify-otp.html'; }, 1200);
       } else {
         errEl.textContent = result.error || 'Đăng ký thất bại, thử lại sau.';
         errEl.style.display='block';

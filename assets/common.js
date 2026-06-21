@@ -16,7 +16,19 @@ const PRODUCTS = [
   { id:'9', name:'Rau húng quế', category:'vegetable', price:80000, image:'https://images.unsplash.com/photo-1618375569909-3c8616cf7733?w=400', description:'Húng quế thơm, dễ trồng trong chậu', difficulty:'Dễ', light:'Ánh sáng trung bình', careLevel:'Tưới 1 lần/ngày', rating:4.6, reviews:78, inStock:true, stock:80 },
   { id:'10', name:'Chậu đất nung', category:'accessory', price:45000, image:'https://images.unsplash.com/photo-1622372738946-62e02505feb3?w=400', description:'Chậu đất nung thoáng khí, giúp rễ cây phát triển tốt', difficulty:'Dễ', light:'Ít ánh sáng', careLevel:'Không cần chăm sóc', rating:4.2, reviews:34, inStock:true, stock:150 },
   { id:'11', name:'Combo kit trồng rau', category:'combo', price:250000, image:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400', description:'Bộ kit đầy đủ: chậu + đất + hạt giống + hướng dẫn', difficulty:'Dễ', light:'Ánh sáng trung bình', careLevel:'Theo hướng dẫn kèm theo', rating:4.9, reviews:312, inStock:true, stock:40 },
-  { id:'12', name:'Hoa dã yên thảo', category:'flower', price:95000, image:'https://images.unsplash.com/photo-1490750967868-88df5691cc9e?w=400', description:'Hoa dã yên thảo nhiều màu sắc, thích hợp trồng ban công', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Tưới vừa phải', rating:4.4, reviews:56, inStock:true, stock:28 }
+  { id:'12', name:'Hoa dã yên thảo', category:'flower', price:95000, image:'https://images.unsplash.com/photo-1490750967868-88df5691cc9e?w=400', description:'Hoa dã yên thảo nhiều màu sắc, thích hợp trồng ban công', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Tưới vừa phải', rating:4.4, reviews:56, inStock:true, stock:28 },
+  // ── Hạt giống (seeds) ──
+  { id:'13', name:'Hạt giống xà lách', category:'seeds', price:25000, image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', description:'Gói hạt giống xà lách dễ nảy mầm, thu hoạch sau 30-40 ngày', difficulty:'Dễ', light:'Ánh sáng trung bình', careLevel:'Tưới ẩm đều mỗi ngày', rating:4.6, reviews:64, inStock:true, stock:200 },
+  { id:'14', name:'Hạt giống cà rốt', category:'seeds', price:22000, image:'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400', description:'Hạt giống cà rốt tỷ lệ nảy mầm cao, củ ngọt giòn', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Giữ đất tơi xốp, tưới đều', rating:4.4, reviews:38, inStock:true, stock:180 },
+  { id:'15', name:'Hạt giống dưa leo', category:'seeds', price:28000, image:'https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=400', description:'Hạt giống dưa leo F1 sai quả, phù hợp ban công có giàn', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Làm giàn leo, tưới 1-2 lần/ngày', rating:4.5, reviews:52, inStock:true, stock:150 },
+  { id:'16', name:'Hạt giống ớt chuông', category:'seeds', price:30000, image:'https://images.unsplash.com/photo-1525607551316-4a8e16d1f9ba?w=400', description:'Hạt giống ớt chuông nhiều màu, giàu vitamin C', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Bón phân định kỳ, tưới vừa phải', rating:4.3, reviews:29, inStock:true, stock:160 },
+  { id:'17', name:'Hạt giống rau muống', category:'seeds', price:18000, image:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400', description:'Hạt giống rau muống nảy mầm nhanh, dễ trồng cho người mới', difficulty:'Dễ', light:'Ánh sáng trung bình', careLevel:'Tưới nước đều, ưa ẩm', rating:4.7, reviews:88, inStock:true, stock:250 },
+  // ── Hoa (flower) ──
+  { id:'18', name:'Hoa hướng dương', category:'flower', price:90000, image:'https://images.unsplash.com/photo-1597848212624-e19ab1ad36a3?w=400', description:'Hoa hướng dương rực rỡ, vươn theo nắng, dễ trồng', difficulty:'Dễ', light:'Nhiều ánh sáng', careLevel:'Tưới đều, cần nhiều nắng', rating:4.8, reviews:140, inStock:true, stock:60 },
+  { id:'19', name:'Hoa cẩm tú cầu', category:'flower', price:135000, image:'https://images.unsplash.com/photo-1597305877032-0668b3c6413a?w=400', description:'Hoa cẩm tú cầu sai bông, đổi màu theo độ pH đất', difficulty:'Khó', light:'Ánh sáng trung bình', careLevel:'Giữ ẩm, tránh nắng gắt buổi trưa', rating:4.6, reviews:74, inStock:true, stock:35 },
+  { id:'20', name:'Hoa mười giờ', category:'flower', price:55000, image:'https://images.unsplash.com/photo-1502780402662-acc01917738e?w=400', description:'Hoa mười giờ nhiều màu, nở rộ buổi sáng, cực dễ trồng', difficulty:'Dễ', light:'Nhiều ánh sáng', careLevel:'Chịu hạn tốt, tưới ít', rating:4.7, reviews:96, inStock:true, stock:120 },
+  { id:'21', name:'Hoa sống đời', category:'flower', price:70000, image:'https://images.unsplash.com/photo-1509223197845-458d87318791?w=400', description:'Hoa sống đời bền hoa, ít sâu bệnh, hợp để bàn', difficulty:'Dễ', light:'Ánh sáng trung bình', careLevel:'Tưới vừa phải, tránh úng', rating:4.5, reviews:61, inStock:true, stock:80 },
+  { id:'22', name:'Hoa thược dược', category:'flower', price:85000, image:'https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=400', description:'Hoa thược dược nhiều cánh, màu sắc tươi tắn cho dịp Tết', difficulty:'Trung bình', light:'Nhiều ánh sáng', careLevel:'Tưới đều, bón phân khi ra nụ', rating:4.6, reviews:70, inStock:true, stock:50 }
 ];
 
 const MOCK_USERS = [
@@ -174,13 +186,13 @@ function renderHeader() {
   document.getElementById('site-header').innerHTML = `
     <div class="header-inner">
       <a href="${base}home.html" class="logo">
-        <div class="logo-icon">V</div>
-        VƯƠN
+        <img src="${base}assets/logo.png" alt="VƯƠN" style="height:44px;width:auto;display:block">
       </a>
       <nav class="header-nav">
         <a href="${base}home.html">Trang chủ</a>
         <a href="${base}products.html?category=vegetable">Cây rau</a>
         <a href="${base}products.html?category=flower">Cây hoa</a>
+        <a href="${base}products.html?category=seeds">Hạt giống</a>
         <a href="${base}ai-chat.html">AI Tư vấn</a>
         <a href="${base}blog.html">Blog</a>
       </nav>
@@ -238,12 +250,11 @@ function renderFooter() {
     <div class="footer-links">
       <div class="footer-links-inner">
         <div class="footer-brand">
-          <a href="${base}home.html" class="logo"><div class="logo-icon">V</div>VƯƠN</a>
+          <a href="${base}home.html" class="logo"><img src="${base}assets/logo-white.png" alt="VƯƠN" style="height:56px;width:auto;display:block"></a>
           <p>Ứng dụng tư vấn và mua sắm cây trồng thông minh — kết hợp AI Gemini để giúp bạn chăm sóc vườn cây đúng cách mỗi ngày.</p>
           <div class="footer-contact">
             <a href="tel:18006789">${I.phone} 1800 6789 (Miễn phí)</a>
-            <a href="mailto:Vuon@gmail.com">${I.mail} Vuon@gmail.com</a>
-            <div>${I.map} Đại Học FPT - Hòa Lạc - Hà Nội</div>
+            <a href="mailto:vuonfarm@gmail.com">${I.mail} vuonfarm@gmail.com</a>
           </div>
           <div class="footer-social">
             <a href="https://www.facebook.com/profile.php?id=61580801050695" target="_blank">${I.fb}</a>
@@ -256,6 +267,7 @@ function renderFooter() {
           <ul>
             <li><a href="${base}products.html?category=vegetable">Cây rau</a></li>
             <li><a href="${base}products.html?category=flower">Cây hoa</a></li>
+            <li><a href="${base}products.html?category=seeds">Hạt giống</a></li>
             <li><a href="${base}products.html?category=combo">Combo</a></li>
             <li><a href="${base}products.html?category=accessory">Phụ kiện</a></li>
             <li><a href="${base}promotions.html">Khuyến mãi</a></li>
@@ -452,6 +464,11 @@ const API_BASE = (() => {
   return VUON_RAILWAY_URL + '/api';
 })();
 
+// ── Google Sign-In ──────────────────────────────
+// ⚠️ THAY bằng OAuth Client ID thật từ Google Cloud Console
+// (dạng: xxxxxxxx-xxxx.apps.googleusercontent.com). Để nguyên placeholder thì nút Google sẽ báo chưa cấu hình.
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+
 // Lấy JWT token từ localStorage
 function getToken() { return localStorage.getItem('vuon_token'); }
 function saveToken(t) { localStorage.setItem('vuon_token', t); }
@@ -502,11 +519,28 @@ const API = {
 
   async register(name, email, password, phone) {
     try {
-      await apiFetch('/auth/register', {
+      const data = await apiFetch('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ name, email, password, phone })
       });
-      return { ok: true };
+      // data = { user, devOtp? } — devOtp chỉ có khi backend tắt gửi mail thật
+      return { ok: true, devOtp: data && data.devOtp };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  // Đăng nhập bằng Google (credential = ID token từ Google Identity Services)
+  async loginGoogle(credential) {
+    try {
+      const data = await apiFetch('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential })
+      });
+      saveToken(data.token);
+      const u = data.user;
+      Store.setUser({ id: u.id, name: u.name, email: u.email, phone: u.phone, avatar: u.avatar, role: u.role });
+      return { ok: true, user: u };
     } catch (e) {
       return { ok: false, error: e.message };
     }
@@ -526,11 +560,11 @@ const API = {
 
   async forgotPassword(email) {
     try {
-      await apiFetch('/auth/forgot-password', {
+      const data = await apiFetch('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email })
       });
-      return { ok: true };
+      return { ok: true, devOtp: data && data.devOtp };
     } catch (e) {
       return { ok: false, error: e.message };
     }
@@ -543,6 +577,18 @@ const API = {
         body: JSON.stringify({ email, otp, newPassword })
       });
       return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  async resendOtp(email, type = 'verify') {
+    try {
+      const data = await apiFetch('/auth/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, type })
+      });
+      return { ok: true, devOtp: data && data.devOtp };
     } catch (e) {
       return { ok: false, error: e.message };
     }
