@@ -18,10 +18,7 @@
     <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:.5rem;">Hướng dẫn chăm sóc cây</h1>
     <p style="color:#6b7280;margin-bottom:1.5rem;">Hướng dẫn chi tiết được AI cá nhân hóa cho từng loại cây</p>
 
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;" id="plant-tabs">
-      ${['Cà chua bi','Rau cải xanh','Hoa hồng','Húng quế','Hoa oải hương'].map((p,i)=>
-        `<button class="plant-btn${i===0?' active':''}" onclick="showGuide('${p}',this)">${p}</button>`).join('')}
-    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;" id="plant-tabs"></div>
 
     <div id="guide-content"></div>
   </div>
@@ -74,6 +71,10 @@
           </div>
         </div>`;
     }
+
+    // Render tab các loại cây từ danh sách GUIDES
+    document.getElementById('plant-tabs').innerHTML = Object.keys(GUIDES).map((p,i)=>
+      `<button class="plant-btn${i===0?' active':''}" onclick="showGuide('${p}',this)">${p}</button>`).join('');
 
     showGuide('Cà chua bi', document.querySelector('.plant-btn.active'));
   </script>
