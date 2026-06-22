@@ -365,42 +365,88 @@ function showToast(msg, type='success') {
 function renderAdminSidebar() {
   const el = document.getElementById('admin-sidebar');
   if(!el) return;
-  const path = window.location.pathname;
-  const page = path.split('/').pop() || 'index.html';
-  function active(p) { return page===p?'style="background:#16a34a;color:#fff;"':'style="color:#d1fae5;"'; }
+  const page = (window.location.pathname.split('/').pop()) || 'index.html';
+
+  const groups = [
+    ['Tổng quan', [['index.html','📊','Dashboard']]],
+    ['Quản lý', [
+      ['products.html','📦','Sản phẩm'],
+      ['inventory.html','🏭','Kho hàng'],
+      ['orders.html','🛒','Đơn hàng'],
+      ['customers.html','👥','Khách hàng'],
+    ]],
+    ['Nội dung', [
+      ['banners.html','🖼️','Banner trang chủ'],
+      ['blog.html','📝','Blog'],
+      ['ai.html','🤖','AI & Dữ liệu'],
+      ['faq.html','❓','FAQ'],
+      ['promotions.html','🎁','Khuyến mãi'],
+    ]],
+  ];
+  const link = ([p,icon,label]) =>
+    `<a href="${p}" class="${p===page?'active':''}" title="${label}">${icon} <span>${label}</span></a>`;
+
   el.innerHTML = `
-    <div id="admin-sidebar-inner" style="width:220px;background:#111827;min-height:100vh;padding:1.5rem 0;flex-shrink:0;">
-      <div style="padding:0 1.25rem 1.5rem;border-bottom:1px solid #1f2937;">
-        <div style="display:flex;align-items:center;gap:.5rem;">
-          <div style="width:32px;height:32px;background:#16a34a;border-radius:.5rem;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;">V</div>
-          <span style="font-weight:700;color:#fff;">VƯƠN Admin</span>
-        </div>
-      </div>
-      <nav style="padding:1rem 0;">
-        <p style="font-size:.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;padding:.25rem 1.25rem;margin-bottom:.25rem;">Tổng quan</p>
-        ${[
-          ['index.html','📊','Dashboard'],
-        ].map(([p,icon,label])=>`<a href="${p}" style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;text-decoration:none;border-radius:.375rem;margin:0 .5rem .25rem;font-size:.875rem;" ${active(p)}>${icon} ${label}</a>`).join('')}
-        <p style="font-size:.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;padding:.25rem 1.25rem;margin:.75rem 0 .25rem;">Quản lý</p>
-        ${[
-          ['products.html','📦','Sản phẩm'],
-          ['inventory.html','🏭','Kho hàng'],
-          ['orders.html','🛒','Đơn hàng'],
-          ['customers.html','👥','Khách hàng'],
-        ].map(([p,icon,label])=>`<a href="${p}" style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;text-decoration:none;border-radius:.375rem;margin:0 .5rem .25rem;font-size:.875rem;" ${active(p)}>${icon} ${label}</a>`).join('')}
-        <p style="font-size:.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;padding:.25rem 1.25rem;margin:.75rem 0 .25rem;">Nội dung</p>
-        ${[
-          ['ai.html','🤖','AI & Dữ liệu'],
-          ['faq.html','❓','FAQ'],
-          ['promotions.html','🎁','Khuyến mãi'],
-        ].map(([p,icon,label])=>`<a href="${p}" style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;text-decoration:none;border-radius:.375rem;margin:0 .5rem .25rem;font-size:.875rem;" ${active(p)}>${icon} ${label}</a>`).join('')}
-      </nav>
-      <div style="padding:1.25rem;border-top:1px solid #1f2937;margin-top:auto;">
-        <a href="../home.html" style="display:flex;align-items:center;gap:.5rem;color:#9ca3af;text-decoration:none;font-size:.8rem;margin-bottom:.75rem;">← Về trang chủ</a>
-        <button onclick="doLogout()" style="width:100%;padding:.5rem;background:#1f2937;color:#9ca3af;border:none;border-radius:.375rem;cursor:pointer;font-size:.8rem;">🚪 Đăng xuất</button>
-      </div>
+    <div class="sidebar-header">
+      <span class="sidebar-logo">🌱 VƯƠN Admin</span>
+      <button class="sidebar-toggle" type="button" onclick="toggleAdminSidebar()" title="Thu gọn / Mở rộng" aria-label="Thu gọn / Mở rộng">☰</button>
+    </div>
+    <nav class="sidebar-nav">
+      ${groups.map(([title,items]) => `<p class="nav-section">${title}</p>${items.map(link).join('')}`).join('')}
+    </nav>
+    <div class="sidebar-bottom">
+      <a href="../home.html" title="Về trang chủ">← <span>Về trang chủ</span></a>
+      <a href="#" onclick="doLogout();return false;" title="Đăng xuất">🚪 <span>Đăng xuất</span></a>
     </div>`;
+
+  // Nút mở sidebar trên mobile + lớp phủ (chỉ tạo 1 lần)
+  if(!document.getElementById('admin-mobile-toggle')) {
+    const btn = document.createElement('button');
+    btn.id = 'admin-mobile-toggle';
+    btn.type = 'button';
+    btn.textContent = '☰';
+    btn.setAttribute('aria-label','Mở menu');
+    btn.onclick = () => toggleAdminSidebarMobile(true);
+    document.body.appendChild(btn);
+
+    const ov = document.createElement('div');
+    ov.id = 'admin-sidebar-overlay';
+    ov.onclick = () => toggleAdminSidebarMobile(false);
+    document.body.appendChild(ov);
+  }
+
+  applyAdminSidebarState(localStorage.getItem('vuon_admin_sidebar') === 'collapsed');
 }
+
+function applyAdminSidebarState(collapsed) {
+  const sb = document.getElementById('admin-sidebar');
+  if(!sb) return;
+  const main = document.querySelector('.main-panel') || document.querySelector('.admin-content');
+  const isMobile = window.matchMedia('(max-width:768px)').matches;
+  sb.classList.toggle('collapsed', collapsed && !isMobile);
+  if(main) {
+    main.style.transition = 'margin .3s';
+    main.style.marginLeft = isMobile ? '0' : (collapsed ? '72px' : '256px');
+  }
+}
+
+function toggleAdminSidebar() {
+  const collapsed = !(localStorage.getItem('vuon_admin_sidebar') === 'collapsed');
+  localStorage.setItem('vuon_admin_sidebar', collapsed ? 'collapsed' : 'expanded');
+  applyAdminSidebarState(collapsed);
+}
+
+function toggleAdminSidebarMobile(open) {
+  const sb = document.getElementById('admin-sidebar');
+  const ov = document.getElementById('admin-sidebar-overlay');
+  if(!sb) return;
+  sb.classList.toggle('open', open);
+  if(ov) ov.style.display = open ? 'block' : 'none';
+}
+
+window.addEventListener('resize', () => {
+  applyAdminSidebarState(localStorage.getItem('vuon_admin_sidebar') === 'collapsed');
+});
 
 // ── Auth ────────────────────────────────────────
 function doLogout() {
@@ -477,6 +523,36 @@ function getToken() { return localStorage.getItem('vuon_token'); }
 function saveToken(t) { localStorage.setItem('vuon_token', t); }
 function clearToken() { localStorage.removeItem('vuon_token'); }
 
+// Nén ảnh phía client → trả về data URL (base64) nhẹ để lưu thẳng vào DB.
+// maxW: chiều rộng tối đa (px), quality: chất lượng JPEG 0..1
+function compressImageFile(file, maxW = 1000, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('Chưa chọn ảnh'));
+    if (!file.type || !file.type.startsWith('image/')) return reject(new Error('File không phải ảnh'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Không đọc được file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Ảnh không hợp lệ'));
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        // PNG có alpha → ép nền trắng + xuất JPEG cho nhẹ
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Headers mặc định (có Bearer nếu đã đăng nhập)
 function apiHeaders() {
   const h = { 'Content-Type': 'application/json' };
@@ -485,10 +561,11 @@ function apiHeaders() {
   return h;
 }
 
-// Helper: fetch với timeout 4 giây
+// Helper: fetch với timeout (mặc định 4 giây; tăng cho upload ảnh base64 lớn)
 async function apiFetch(path, opts = {}) {
   const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 4000);
+  const timeout = opts.timeout || 4000;
+  const tid = setTimeout(() => ctrl.abort(), timeout);
   try {
     const res = await fetch(API_BASE + path, { ...opts, signal: ctrl.signal, headers: { ...apiHeaders(), ...(opts.headers || {}) } });
     clearTimeout(tid);
@@ -795,6 +872,92 @@ const API = {
       const data = await apiFetch(`/admin/customers?page=${page}&limit=${limit}`);
       return data.data || [];
     } catch(e) { return MOCK_USERS; }
+  },
+
+  // ── API: Admin – Products CRUD ─────────────────
+  async adminCreateProduct(body) {
+    try {
+      const data = await apiFetch('/admin/products', {
+        method: 'POST', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, product: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  async adminUpdateProduct(id, body) {
+    try {
+      const data = await apiFetch('/admin/products/' + id, {
+        method: 'PUT', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, product: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  // ── API: Admin – Blog ──────────────────────────
+  async adminCreateBlog(body) {
+    try {
+      const data = await apiFetch('/admin/blog', {
+        method: 'POST', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, post: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  // ── API: Blog (public) ─────────────────────────
+  async getBlog({ category, page=1, limit=50 } = {}) {
+    try {
+      const params = new URLSearchParams({ page, limit });
+      if (category && category !== 'all') params.set('category', category);
+      const data = await apiFetch('/blog?' + params);
+      return data.data || [];
+    } catch(e) { return []; }
+  },
+
+  async getBlogPost(slug) {
+    try {
+      const data = await apiFetch('/blog/' + slug);
+      return data.post || null;
+    } catch(e) { return null; }
+  },
+
+  // ── API: Banners ───────────────────────────────
+  async getBanners() {
+    try {
+      const data = await apiFetch('/banners');
+      return data.banners || [];
+    } catch(e) { return []; }
+  },
+
+  async adminGetBanners() {
+    try {
+      const data = await apiFetch('/admin/banners');
+      return data.banners || [];
+    } catch(e) { return []; }
+  },
+
+  async adminCreateBanner(body) {
+    try {
+      const data = await apiFetch('/admin/banners', {
+        method: 'POST', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, banner: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  async adminUpdateBanner(id, body) {
+    try {
+      const data = await apiFetch('/admin/banners/' + id, {
+        method: 'PUT', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, banner: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  async adminDeleteBanner(id) {
+    try {
+      await apiFetch('/admin/banners/' + id, { method: 'DELETE' });
+      return { ok: true };
+    } catch(e) { return { ok: false, error: e.message }; }
   }
 };
 

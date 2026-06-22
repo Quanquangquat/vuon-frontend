@@ -10,10 +10,10 @@
 
   <main>
     <!-- Hero -->
-    <section class="hero">
+    <section class="hero" id="home-hero">
       <div class="hero-inner">
-        <h1>Trồng cây dễ dàng với VƯƠN</h1>
-        <p>Mua cây trồng chất lượng + AI tư vấn miễn phí</p>
+        <h1 id="hero-title">Trồng cây dễ dàng với VƯƠN</h1>
+        <p id="hero-subtitle">Mua cây trồng chất lượng + AI tư vấn miễn phí</p>
         <div class="hero-btns">
           <a href="products.html?category=vegetable" class="btn" style="background:#fff;color:#16a34a;">Mua sắm ngay</a>
           <a href="ai-chat.html" class="btn btn-outline" style="border-color:#fff;color:#fff;">
@@ -90,6 +90,30 @@
 
   <script src="assets/common.js"></script>
   <script>
+    // Banner hero động – nếu admin đã tạo banner thì dùng banner đầu tiên, ngược lại giữ mặc định
+    (async () => {
+      const banners = await API.getBanners();
+      if(banners && banners.length) {
+        const b = banners[0];
+        const hero = document.getElementById('home-hero');
+        if(b.title)    document.getElementById('hero-title').textContent = b.title;
+        if(b.subtitle) document.getElementById('hero-subtitle').textContent = b.subtitle;
+        if(b.image && hero) {
+          hero.style.backgroundImage =
+            `linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)), url('${b.image}')`;
+          hero.style.backgroundSize = 'cover';
+          hero.style.backgroundPosition = 'center';
+        }
+        if(b.link) {
+          hero.style.cursor = 'pointer';
+          hero.addEventListener('click', (e) => {
+            if(e.target.closest('a')) return; // tránh đè lên 2 nút sẵn có
+            location.href = b.link;
+          });
+        }
+      }
+    })();
+
     // Featured products – thử API trước, fallback mock
     (async () => {
       const products = await API.getProducts({ limit: 8 });

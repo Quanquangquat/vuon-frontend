@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    body{background:#f3f4f6;}
+    .admin-layout{display:flex;min-height:100vh;}
+    .main-panel{flex:1;padding:2rem;overflow-x:hidden;}
+    .blog-admin-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:1.5rem;}
+    @media(max-width:900px){.blog-admin-grid{grid-template-columns:1fr;}}
+    .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+    .data-table th{text-align:left;padding:.6rem .75rem;background:#f9fafb;font-size:.75rem;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;}
+    .data-table td{padding:.6rem .75rem;border-bottom:1px solid #f9fafb;font-size:.85rem;vertical-align:middle;}
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem;font-weight:800;">Quản lý Blog</h1>
+        <p style="color:#6b7280;font-size:.875rem;">Viết bài mới và xem danh sách bài đã đăng</p>
+      </div>
+
+      <div class="blog-admin-grid">
+        <!-- Form viết bài -->
+        <div>
+          <div class="card card-pad">
+            <h2 style="font-weight:700;margin-bottom:1rem;">✍️ Viết bài mới</h2>
+            <div class="form-group">
+              <label>Tiêu đề *</label>
+              <input type="text" id="b-title" class="form-control" placeholder="VD: 5 loại rau dễ trồng cho người mới">
+            </div>
+            <div class="form-group">
+              <label>Danh mục</label>
+              <select id="b-category" class="form-control">
+                <option value="tips">Mẹo trồng cây</option>
+                <option value="guide">Hướng dẫn</option>
+                <option value="story">Câu chuyện</option>
+                <option value="news">Tin tức</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tóm tắt ngắn</label>
+              <textarea id="b-excerpt" class="form-control" rows="2" placeholder="1-2 câu mô tả bài viết..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Nội dung *</label>
+              <textarea id="b-content" class="form-control" rows="9" placeholder="Nội dung đầy đủ của bài viết..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Ảnh bìa (tải từ máy)</label>
+              <input type="file" id="b-image-file" accept="image/*" class="form-control" onchange="onPickBlogImage(event)">
+            </div>
+            <div id="b-img-preview" style="display:none;margin-bottom:1rem;">
+              <img id="b-preview-img" style="width:100%;border-radius:.5rem;max-height:180px;object-fit:cover;">
+            </div>
+            <button onclick="publishPost(event)" class="btn btn-green" style="width:100%;">📤 Đăng bài</button>
+          </div>
+        </div>
+
+        <!-- Danh sách bài -->
+        <div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Ảnh</th><th>Tiêu đề</th><th>Danh mục</th><th>Lượt xem</th></tr></thead>
+              <tbody id="blog-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+
+    const catLabel = c => ({tips:'Mẹo vặt', guide:'Hướng dẫn', story:'Câu chuyện', news:'Tin tức'})[c] || c;
+    let imageData = '';
+
+    async function loadPosts() {
+      const tbody = document.getElementById('blog-tbody');
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:1.5rem;">Đang tải...</td></tr>';
+      const posts = await API.getBlog({ limit: 100 });
+      if(!posts.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:1.5rem;">Chưa có bài viết nào</td></tr>';
+        return;
+      }
+      tbody.innerHTML = posts.map((p, i) => `
+        <tr>
+          <td style="color:#9ca3af;">${i+1}</td>
+          <td>${p.image
+                ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:.375rem;">`
+                : '🌱'}</td>
+          <td style="font-weight:600;max-width:240px;">
+            <a href="../blog-detail.html?slug=${encodeURIComponent(p.slug||'')}" target="_blank" style="color:#111827;text-decoration:none;">${p.title}</a>
+          </td>
+          <td><span class="badge badge-green" style="font-size:.7rem;">${catLabel(p.category)}</span></td>
+          <td>${p.views||0}</td>
+        </tr>`).join('');
+    }
+
+    async function onPickBlogImage(e) {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      try {
+        showToast('Đang xử lý ảnh...');
+        imageData = await compressImageFile(file, 1100, 0.72);
+        document.getElementById('b-preview-img').src = imageData;
+        document.getElementById('b-img-preview').style.display = 'block';
+      } catch(err) {
+        showToast(err.message || 'Lỗi xử lý ảnh','error');
+      }
+    }
+
+    async function publishPost(event) {
+      const title = document.getElementById('b-title').value.trim();
+      const content = document.getElementById('b-content').value.trim();
+      if(!title) { showToast('Vui lòng nhập tiêu đề','error'); return; }
+      if(!content) { showToast('Vui lòng nhập nội dung','error'); return; }
+
+      const body = {
+        title,
+        category: document.getElementById('b-category').value,
+        excerpt: document.getElementById('b-excerpt').value.trim(),
+        content,
+        image: imageData
+      };
+
+      const btn = event.target;
+      btn.disabled = true; btn.textContent = 'Đang đăng...';
+      const r = await API.adminCreateBlog(body);
+      if(r.ok) {
+        showToast('Đã đăng bài viết!');
+        document.getElementById('b-title').value = '';
+        document.getElementById('b-excerpt').value = '';
+        document.getElementById('b-content').value = '';
+        document.getElementById('b-image-file').value = '';
+        document.getElementById('b-img-preview').style.display = 'none';
+        imageData = '';
+        loadPosts();
+      } else {
+        showToast(r.error || 'Đăng bài thất bại', 'error');
+      }
+      btn.disabled = false; btn.textContent = '📤 Đăng bài';
+    }
+
+    loadPosts();
+  </script>
+</body>
+</html>

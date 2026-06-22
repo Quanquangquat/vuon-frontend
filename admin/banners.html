@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banner trang chủ - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    body{background:#f3f4f6;}
+    .admin-layout{display:flex;min-height:100vh;}
+    .main-panel{flex:1;padding:2rem;overflow-x:hidden;}
+    .banner-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:1.5rem;}
+    @media(max-width:900px){.banner-grid{grid-template-columns:1fr;}}
+    .banner-item{display:flex;gap:.75rem;align-items:center;background:#fff;border-radius:.75rem;padding:.75rem;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:.75rem;}
+    .banner-item img{width:120px;height:64px;object-fit:cover;border-radius:.5rem;flex-shrink:0;background:#f0fdf4;}
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem;font-weight:800;">Banner trang chủ</h1>
+        <p style="color:#6b7280;font-size:.875rem;">Quản lý ảnh banner hiển thị ở đầu trang chủ. Banner có thứ tự nhỏ nhất sẽ hiển thị trước.</p>
+      </div>
+
+      <div class="banner-grid">
+        <!-- Form thêm banner -->
+        <div>
+          <div class="card card-pad">
+            <h2 style="font-weight:700;margin-bottom:1rem;">➕ Thêm banner</h2>
+            <div class="form-group">
+              <label>Tiêu đề</label>
+              <input type="text" id="bn-title" class="form-control" placeholder="VD: Trồng cây dễ dàng với VƯƠN">
+            </div>
+            <div class="form-group">
+              <label>Mô tả phụ</label>
+              <input type="text" id="bn-subtitle" class="form-control" placeholder="VD: Mua cây + AI tư vấn miễn phí">
+            </div>
+            <div class="form-group">
+              <label>Liên kết khi bấm (tuỳ chọn)</label>
+              <input type="text" id="bn-link" class="form-control" placeholder="VD: products.html?category=vegetable">
+            </div>
+            <div class="form-group">
+              <label>Thứ tự hiển thị</label>
+              <input type="number" id="bn-order" class="form-control" value="0">
+            </div>
+            <div class="form-group">
+              <label>Ảnh banner (tải từ máy) *</label>
+              <input type="file" id="bn-image-file" accept="image/*" class="form-control" onchange="onPickBanner(event)">
+            </div>
+            <div id="bn-img-preview" style="display:none;margin-bottom:1rem;">
+              <img id="bn-preview-img" style="width:100%;border-radius:.5rem;max-height:160px;object-fit:cover;">
+            </div>
+            <button onclick="addBanner(event)" class="btn btn-green" style="width:100%;">💾 Lưu banner</button>
+          </div>
+        </div>
+
+        <!-- Danh sách banner -->
+        <div>
+          <h2 style="font-weight:700;margin-bottom:.75rem;">Banner hiện có</h2>
+          <div id="banner-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+    let imageData = '';
+
+    async function loadBanners() {
+      const list = document.getElementById('banner-list');
+      list.innerHTML = '<p style="color:#9ca3af;">Đang tải...</p>';
+      const banners = await API.adminGetBanners();
+      if(!banners.length) {
+        list.innerHTML = '<p style="color:#9ca3af;">Chưa có banner nào.</p>';
+        return;
+      }
+      list.innerHTML = banners.map(b => {
+        const active = (b.isActive !== undefined ? b.isActive : b.active); // Jackson có thể trả 'active'
+        return `
+        <div class="banner-item">
+          <img src="${b.image||''}" alt="">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;">${b.title||'(không tiêu đề)'}</div>
+            <div style="font-size:.8rem;color:#6b7280;">${b.subtitle||''}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">Thứ tự: ${b.sortOrder} · ${active?'Đang bật':'Đang tắt'}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.35rem;">
+            <button onclick="toggleBanner('${b.id}', ${!active})" class="btn btn-outline" style="font-size:.72rem;padding:.25rem .5rem;">${active?'Tắt':'Bật'}</button>
+            <button onclick="removeBanner('${b.id}')" class="btn" style="font-size:.72rem;padding:.25rem .5rem;background:#fee2e2;color:#ef4444;border:none;">Xóa</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function onPickBanner(e) {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      try {
+        showToast('Đang xử lý ảnh...');
+        imageData = await compressImageFile(file, 1600, 0.75);
+        document.getElementById('bn-preview-img').src = imageData;
+        document.getElementById('bn-img-preview').style.display = 'block';
+      } catch(err) { showToast(err.message || 'Lỗi xử lý ảnh','error'); }
+    }
+
+    async function addBanner(event) {
+      if(!imageData) { showToast('Vui lòng chọn ảnh banner','error'); return; }
+      const body = {
+        title: document.getElementById('bn-title').value.trim(),
+        subtitle: document.getElementById('bn-subtitle').value.trim(),
+        link: document.getElementById('bn-link').value.trim(),
+        sortOrder: parseInt(document.getElementById('bn-order').value) || 0,
+        image: imageData
+      };
+      const btn = event.target;
+      btn.disabled = true; btn.textContent = 'Đang lưu...';
+      const r = await API.adminCreateBanner(body);
+      if(r.ok) {
+        showToast('Đã thêm banner!');
+        document.getElementById('bn-title').value = '';
+        document.getElementById('bn-subtitle').value = '';
+        document.getElementById('bn-link').value = '';
+        document.getElementById('bn-image-file').value = '';
+        document.getElementById('bn-img-preview').style.display = 'none';
+        imageData = '';
+        loadBanners();
+      } else { showToast(r.error || 'Lưu thất bại','error'); }
+      btn.disabled = false; btn.textContent = '💾 Lưu banner';
+    }
+
+    async function toggleBanner(id, active) {
+      const r = await API.adminUpdateBanner(id, { isActive: active });
+      if(r.ok) loadBanners(); else showToast(r.error || 'Thất bại','error');
+    }
+
+    async function removeBanner(id) {
+      if(!confirm('Xóa banner này?')) return;
+      const r = await API.adminDeleteBanner(id);
+      if(r.ok) { showToast('Đã xóa banner'); loadBanners(); }
+      else showToast(r.error || 'Xóa thất bại','error');
+    }
+
+    loadBanners();
+  </script>
+</body>
+</html>

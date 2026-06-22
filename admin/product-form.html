@@ -66,8 +66,9 @@
               <select id="f-category" class="form-control">
                 <option value="vegetable">Rau củ</option>
                 <option value="flower">Hoa cảnh</option>
-                <option value="tool">Dụng cụ</option>
+                <option value="seeds">Hạt giống</option>
                 <option value="combo">Combo</option>
+                <option value="accessory">Phụ kiện</option>
               </select>
             </div>
             <div class="form-group">
@@ -91,7 +92,12 @@
           <div class="card card-pad" style="margin-bottom:1rem;">
             <h2 style="font-weight:700;margin-bottom:1rem;">Hình ảnh</h2>
             <div class="form-group">
-              <label>URL ảnh</label>
+              <label>Tải ảnh từ máy</label>
+              <input type="file" id="f-image-file" accept="image/*" class="form-control" onchange="onPickImage(event)">
+              <p style="font-size:.75rem;color:#9ca3af;margin-top:.25rem;">Ảnh sẽ tự động được nén nhẹ trước khi lưu.</p>
+            </div>
+            <div class="form-group">
+              <label>Hoặc dán URL ảnh</label>
               <input type="url" id="f-image" class="form-control" placeholder="https://...">
             </div>
             <div id="img-preview" style="display:none;margin-top:.5rem;">
@@ -100,7 +106,7 @@
           </div>
 
           <div style="display:flex;flex-direction:column;gap:.5rem;">
-            <button onclick="saveProduct()" class="btn btn-green">💾 Lưu sản phẩm</button>
+            <button onclick="saveProduct(event)" class="btn btn-green">💾 Lưu sản phẩm</button>
             <a href="products.html" class="btn btn-outline" style="text-align:center;">Hủy</a>
           </div>
         </div>
@@ -111,45 +117,86 @@
   <script>
     renderAdminSidebar();
     const editId = getParam('id');
-    let product = null;
 
-    if(editId) {
-      product = getProduct(editId);
-      if(product) {
-        document.getElementById('form-title').textContent = 'Chỉnh sửa sản phẩm';
-        document.getElementById('f-name').value = product.name;
-        document.getElementById('f-desc').value = product.description||'';
-        document.getElementById('f-price').value = product.price;
-        document.getElementById('f-original-price').value = product.originalPrice||'';
-        document.getElementById('f-stock').value = product.stock||0;
-        document.getElementById('f-category').value = product.category;
-        document.getElementById('f-difficulty').value = product.difficulty||'Dễ';
-        document.getElementById('f-care').value = product.careLevel||'';
-        document.getElementById('f-instock').checked = product.inStock!==false;
-        document.getElementById('f-image').value = product.image||'';
-        updatePreview();
-      }
+    // Difficulty enum của backend dùng dấu gạch dưới (Trung_bình) → đổi sang nhãn hiển thị
+    const diffLabel = d => (d === 'Trung_bình' ? 'Trung bình' : (d || 'Dễ'));
+
+    async function loadProduct() {
+      if(!editId) return;
+      document.getElementById('form-title').textContent = 'Chỉnh sửa sản phẩm';
+      const { product } = await API.getProduct(editId);
+      if(!product) { showToast('Không tải được sản phẩm','error'); return; }
+      document.getElementById('f-name').value = product.name || '';
+      document.getElementById('f-desc').value = product.description || '';
+      document.getElementById('f-price').value = product.price || '';
+      document.getElementById('f-original-price').value = product.originalPrice || '';
+      document.getElementById('f-stock').value = product.stock || 0;
+      if(product.category) document.getElementById('f-category').value = product.category;
+      document.getElementById('f-difficulty').value = diffLabel(product.difficulty);
+      document.getElementById('f-care').value = product.careLevel || '';
+      document.getElementById('f-instock').checked = product.inStock !== false;
+      document.getElementById('f-image').value = product.image || '';
+      updatePreview();
     }
+    loadProduct();
 
     document.getElementById('f-image').addEventListener('input', updatePreview);
     function updatePreview() {
       const url = document.getElementById('f-image').value;
       if(url) {
-        document.getElementById('preview-img').src=url;
-        document.getElementById('img-preview').style.display='block';
+        document.getElementById('preview-img').src = url;
+        document.getElementById('img-preview').style.display = 'block';
       } else {
-        document.getElementById('img-preview').style.display='none';
+        document.getElementById('img-preview').style.display = 'none';
       }
     }
 
-    function saveProduct() {
-      const name=document.getElementById('f-name').value.trim();
-      const price=parseInt(document.getElementById('f-price').value);
-      const stock=parseInt(document.getElementById('f-stock').value)||0;
+    // Chọn ảnh từ máy → nén → đặt vào ô URL (data URL) + xem trước
+    async function onPickImage(e) {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      try {
+        showToast('Đang xử lý ảnh...');
+        const dataUrl = await compressImageFile(file, 1000, 0.72);
+        document.getElementById('f-image').value = dataUrl;
+        updatePreview();
+      } catch(err) {
+        showToast(err.message || 'Lỗi xử lý ảnh','error');
+      }
+    }
+
+    async function saveProduct(event) {
+      const name = document.getElementById('f-name').value.trim();
+      const price = parseInt(document.getElementById('f-price').value);
+      const stock = parseInt(document.getElementById('f-stock').value) || 0;
       if(!name) { showToast('Vui lòng nhập tên sản phẩm','error'); return; }
-      if(!price||price<=0) { showToast('Vui lòng nhập giá hợp lệ','error'); return; }
-      showToast(editId?'Đã cập nhật sản phẩm!':'Đã thêm sản phẩm mới!');
-      setTimeout(()=>location.href='products.html', 1000);
+      if(!price || price <= 0) { showToast('Vui lòng nhập giá hợp lệ','error'); return; }
+
+      const body = {
+        name,
+        category: document.getElementById('f-category').value,
+        price,
+        stock,
+        description: document.getElementById('f-desc').value.trim(),
+        difficulty: document.getElementById('f-difficulty').value,
+        careLevel: document.getElementById('f-care').value.trim(),
+        image: document.getElementById('f-image').value.trim()
+      };
+
+      const btn = event && event.target;
+      if(btn) { btn.disabled = true; btn.textContent = 'Đang lưu...'; }
+
+      const r = editId
+        ? await API.adminUpdateProduct(editId, body)
+        : await API.adminCreateProduct(body);
+
+      if(r.ok) {
+        showToast(editId ? 'Đã cập nhật sản phẩm!' : 'Đã thêm sản phẩm mới!');
+        setTimeout(() => location.href = 'products.html', 800);
+      } else {
+        showToast(r.error || 'Lưu thất bại', 'error');
+        if(btn) { btn.disabled = false; btn.textContent = '💾 Lưu sản phẩm'; }
+      }
     }
   </script>
 </body>

@@ -223,7 +223,28 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 #admin-sidebar.collapsed .sidebar-bottom a span { display: none; }
 .admin-content { margin-left: 256px; padding: 2rem; transition: margin .3s; min-height: 100vh; }
 .admin-content.collapsed { margin-left: 72px; }
-@media(max-width:768px) { #admin-sidebar { transform: translateX(-100%); } .admin-content { margin-left: 0; } }
+
+/* Collapsible sidebar — additions */
+#admin-sidebar { overflow-x: hidden; }
+.sidebar-nav { overflow-y: auto; }
+.sidebar-nav a, .sidebar-bottom a { text-decoration: none; }
+.sidebar-toggle { font-size: 1.15rem; line-height: 1; }
+.nav-section { font-size: .65rem; font-weight: 600; color: #6b7280; text-transform: uppercase; padding: .65rem 1rem .25rem; margin: 0; white-space: nowrap; overflow: hidden; }
+#admin-sidebar.collapsed .nav-section { visibility: hidden; height: .4rem; padding: 0; }
+#admin-sidebar.collapsed .sidebar-header { justify-content: center; }
+#admin-sidebar.collapsed .sidebar-nav a,
+#admin-sidebar.collapsed .sidebar-bottom a { justify-content: center; gap: 0; padding-left: 0; padding-right: 0; }
+
+/* Mobile open button + overlay */
+#admin-mobile-toggle { display: none; position: fixed; top: .6rem; left: .6rem; z-index: 60; width: 42px; height: 42px; border: none; border-radius: .5rem; background: #111827; color: #fff; font-size: 1.2rem; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+#admin-sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 49; }
+
+@media(max-width:768px) {
+  #admin-sidebar { transform: translateX(-100%); width: 256px; }
+  #admin-sidebar.open { transform: translateX(0); }
+  .admin-content { margin-left: 0; }
+  #admin-mobile-toggle { display: block; }
+}
 
 /* ── Table ── */
 .table-wrap { overflow-x: auto; }
