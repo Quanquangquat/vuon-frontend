@@ -602,7 +602,7 @@ const API = {
       if (search) params.set('search', search);
       const data = await apiFetch('/products?' + params);
       // data = Page object: { content: [...], totalElements, totalPages, ... }
-      return data.content.map(p => ({
+      return data.data.map(p => ({
         id: p.id, name: p.name, category: p.category,
         price: p.price, image: p.image, description: p.description,
         difficulty: p.difficulty, light: p.light, careLevel: p.careLevel,
@@ -642,7 +642,7 @@ const API = {
   async getPromotions() {
     try {
       const data = await apiFetch('/promotions');
-      return (Array.isArray(data) ? data : data.content || []).map(p => ({
+      return (Array.isArray(data) ? data : data.data || []).map(p => ({
         id: p.id, code: p.code, title: p.title,
         discount: p.discount, discountType: p.type,
         description: p.description, minOrder: p.minOrder,
@@ -685,12 +685,21 @@ const API = {
       const params = new URLSearchParams({ page, limit });
       if (status) params.set('status', status);
       const data = await apiFetch('/orders?' + params);
-      return data.content || [];
+      return data.data || [];
     } catch(e) { return MOCK_ORDERS; }
   },
 
   async createOrder(shippingInfo, paymentMethod='COD', promoCode='') {
     try {
+      // Gửi thẳng các dòng trong giỏ (kèm snapshot tên/ảnh/giá) để đơn luôn lưu được,
+      // không phụ thuộc ID sản phẩm có khớp DB hay không.
+      const items = Store.getCart().map(i => ({
+        productId:    i.productId,
+        productName:  i.product?.name,
+        productImage: i.product?.image,
+        price:        i.product?.price || 0,
+        quantity:     i.quantity
+      }));
       const data = await apiFetch('/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -699,7 +708,8 @@ const API = {
           shippingAddress: shippingInfo.address,
           shippingNote:    shippingInfo.note || '',
           paymentMethod:   paymentMethod,
-          promoCode:       promoCode || null
+          promoCode:       promoCode || null,
+          items:           items
         })
       });
       return { ok: true, order: data };
@@ -748,7 +758,7 @@ const API = {
   async adminGetProducts({ page=1, limit=20 } = {}) {
     try {
       const data = await apiFetch(`/admin/products?page=${page}&limit=${limit}`);
-      return data.content || [];
+      return data.data || [];
     } catch(e) { return PRODUCTS; }
   },
 
@@ -762,7 +772,7 @@ const API = {
       const params = new URLSearchParams({ page, limit });
       if (status) params.set('status', status);
       const data = await apiFetch('/admin/orders?' + params);
-      return data.content || [];
+      return data.data || [];
     } catch(e) { return MOCK_ORDERS; }
   },
 
@@ -779,7 +789,7 @@ const API = {
   async adminGetCustomers({ page=1, limit=50 } = {}) {
     try {
       const data = await apiFetch(`/admin/customers?page=${page}&limit=${limit}`);
-      return data.content || [];
+      return data.data || [];
     } catch(e) { return MOCK_USERS; }
   }
 };

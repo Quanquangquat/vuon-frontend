@@ -66,26 +66,23 @@
       const paymentMap = { cod:'COD', bank:'BANK', wallet:'WALLET' };
       const payMethod  = paymentMap[payment] || 'COD';
 
-      // Nếu đã đăng nhập → thử gọi API thật
+      // Đã đăng nhập → tạo đơn thật trên server (gửi kèm items nên không cần sync giỏ)
       if (getToken()) {
-        const synced = await API.syncCartToServer();
-        if (synced) {
-          const result = await API.createOrder(shipping_info, payMethod);
-          if (result.ok) {
-            Store.clearCart();
-            localStorage.removeItem('vuon_shipping');
-            localStorage.removeItem('vuon_payment');
-            window.location.href = 'order-success.html';
-            return;
-          }
-          // API trả lỗi → báo cho user
-          showToast((result.error || 'Đặt hàng thất bại') + '. Vui lòng thử lại.', 'error');
-          if (btn) { btn.disabled = false; btn.innerHTML = '✓ Đặt hàng'; }
+        const result = await API.createOrder(shipping_info, payMethod);
+        if (result.ok) {
+          Store.clearCart();
+          localStorage.removeItem('vuon_shipping');
+          localStorage.removeItem('vuon_payment');
+          window.location.href = 'order-success.html';
           return;
         }
+        // API trả lỗi → báo cho user, không giả vờ thành công
+        showToast((result.error || 'Đặt hàng thất bại') + '. Vui lòng thử lại.', 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '✓ Đặt hàng'; }
+        return;
       }
 
-      // Fallback: chưa đăng nhập hoặc sync thất bại → xử lý local
+      // Chưa đăng nhập → xử lý local
       Store.clearCart();
       localStorage.removeItem('vuon_shipping');
       localStorage.removeItem('vuon_payment');
