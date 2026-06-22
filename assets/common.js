@@ -467,7 +467,7 @@ const API_BASE = (() => {
 // ── Google Sign-In ──────────────────────────────
 // ⚠️ THAY bằng OAuth Client ID thật từ Google Cloud Console
 // (dạng: xxxxxxxx-xxxx.apps.googleusercontent.com). Để nguyên placeholder thì nút Google sẽ báo chưa cấu hình.
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '96857866577-7jppk9l1nkvv1da6v9hbaaeg7iaf7ig7.apps.googleusercontent.com';
 
 // Lấy JWT token từ localStorage
 function getToken() { return localStorage.getItem('vuon_token'); }
