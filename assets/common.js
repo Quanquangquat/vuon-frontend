@@ -134,7 +134,10 @@ function stars(rating) {
 
 function getParam(name) { return new URLSearchParams(window.location.search).get(name); }
 
-function getProduct(id) { return PRODUCTS.find(p=>p.id===id); }
+// Cache sản phẩm đã tải từ API (id là UUID) để thêm vào giỏ không cần gọi lại API
+const PRODUCT_CACHE = {};
+function cacheProducts(list) { (list||[]).forEach(p => { if(p && p.id != null) PRODUCT_CACHE[p.id] = p; }); }
+function getProduct(id) { return PRODUCT_CACHE[id] || PRODUCTS.find(p=>p.id===id); }
 
 function statusLabel(s) {
   const map = { completed:'Hoàn thành', shipping:'Đang giao', processing:'Đang xử lý', cancelled:'Đã hủy' };
@@ -341,7 +344,7 @@ function productCardHTML(p, base='') {
 // ── Add to Cart Toast ───────────────────────────
 function addToCartToast(productId) {
   const p = getProduct(productId);
-  if(!p) return;
+  if(!p) { showToast('Không tìm thấy sản phẩm, vui lòng tải lại trang', 'error'); return; }
   Store.addToCart(p);
   showToast('Đã thêm vào giỏ hàng! 🛒');
 }
@@ -601,14 +604,16 @@ const API = {
       if (category && category !== 'all') params.set('category', category);
       if (search) params.set('search', search);
       const data = await apiFetch('/products?' + params);
-      // data = Page object: { content: [...], totalElements, totalPages, ... }
-      return data.data.map(p => ({
+      // data = PageResponse: { data: [...], total, page, limit, totalPages }
+      const mapped = data.data.map(p => ({
         id: p.id, name: p.name, category: p.category,
         price: p.price, image: p.image, description: p.description,
         difficulty: p.difficulty, light: p.light, careLevel: p.careLevel,
         rating: p.rating, reviews: p.reviewsCount,
         inStock: p.inStock, stock: p.stock
       }));
+      cacheProducts(mapped);
+      return mapped;
     } catch (e) {
       // fallback mock
       let list = [...PRODUCTS];
@@ -623,16 +628,15 @@ const API = {
       const data = await apiFetch('/products/' + id);
       // data = { product: {...}, reviews: [...] }
       const p = data.product;
-      return {
-        product: {
+      const product = {
           id: p.id, name: p.name, category: p.category,
           price: p.price, image: p.image, description: p.description,
           difficulty: p.difficulty, light: p.light, careLevel: p.careLevel,
           rating: p.rating, reviews: p.reviewsCount,
           inStock: p.inStock, stock: p.stock
-        },
-        reviews: data.reviews || []
-      };
+        };
+      cacheProducts([product]);
+      return { product, reviews: data.reviews || [] };
     } catch (e) {
       const p = PRODUCTS.find(x => x.id == id) || PRODUCTS[0];
       return { product: p, reviews: [] };
