@@ -180,6 +180,43 @@ const I = {
   bell: '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>',
 };
 
+// ── Site Settings (giao diện) ───────────────────
+// Giá trị mặc định = đúng như giao diện hiện tại; admin có thể ghi đè qua trang Cài đặt.
+const SITE_SETTINGS = {
+  brandName: 'VƯƠN',
+  logoUrl: '',        // rỗng → dùng assets/logo.png
+  logoWhiteUrl: '',   // rỗng → dùng assets/logo-white.png
+  faviconUrl: '',
+  footerDescription: 'Ứng dụng tư vấn và mua sắm cây trồng thông minh — kết hợp AI Gemini để giúp bạn chăm sóc vườn cây đúng cách mỗi ngày.',
+  footerPhone: '1800 6789 (Miễn phí)',
+  footerEmail: 'vuonfarm@gmail.com',
+  footerAddress: '',
+  facebookUrl: 'https://www.facebook.com/profile.php?id=61580801050695',
+  instagramUrl: '#',
+  youtubeUrl: '#',
+  promoBarText: ''
+};
+
+// Gộp giá trị từ API vào SITE_SETTINGS (chỉ ghi đè khi có giá trị)
+function applySiteSettings(s) {
+  if(!s) return;
+  Object.keys(SITE_SETTINGS).forEach(k => {
+    if(s[k] !== undefined && s[k] !== null && s[k] !== '') SITE_SETTINGS[k] = s[k];
+  });
+  applyFavicon();
+  if(document.getElementById('site-header')) renderHeader();
+  if(document.getElementById('site-footer')) renderFooter();
+  const promoEl = document.getElementById('promo-bar-text');
+  if(promoEl && SITE_SETTINGS.promoBarText) promoEl.innerHTML = SITE_SETTINGS.promoBarText;
+}
+
+function applyFavicon() {
+  if(!SITE_SETTINGS.faviconUrl) return;
+  let link = document.querySelector("link[rel~='icon']");
+  if(!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+  link.href = SITE_SETTINGS.faviconUrl;
+}
+
 // ── Header Renderer ─────────────────────────────
 function renderHeader() {
   const user = Store.getUser();
@@ -189,7 +226,7 @@ function renderHeader() {
   document.getElementById('site-header').innerHTML = `
     <div class="header-inner">
       <a href="${base}home.html" class="logo">
-        <img src="${base}assets/logo.png" alt="VƯƠN" style="height:44px;width:auto;display:block">
+        <img src="${SITE_SETTINGS.logoUrl || base+'assets/logo.png'}" alt="${SITE_SETTINGS.brandName}" style="height:44px;width:auto;display:block">
       </a>
       <nav class="header-nav">
         <a href="${base}home.html">Trang chủ</a>
@@ -253,16 +290,17 @@ function renderFooter() {
     <div class="footer-links">
       <div class="footer-links-inner">
         <div class="footer-brand">
-          <a href="${base}home.html" class="logo"><img src="${base}assets/logo-white.png" alt="VƯƠN" style="height:56px;width:auto;display:block"></a>
-          <p>Ứng dụng tư vấn và mua sắm cây trồng thông minh — kết hợp AI Gemini để giúp bạn chăm sóc vườn cây đúng cách mỗi ngày.</p>
+          <a href="${base}home.html" class="logo"><img src="${SITE_SETTINGS.logoWhiteUrl || base+'assets/logo-white.png'}" alt="${SITE_SETTINGS.brandName}" style="height:56px;width:auto;display:block"></a>
+          <p>${SITE_SETTINGS.footerDescription}</p>
           <div class="footer-contact">
-            <a href="tel:18006789">${I.phone} 1800 6789 (Miễn phí)</a>
-            <a href="mailto:vuonfarm@gmail.com">${I.mail} vuonfarm@gmail.com</a>
+            <a href="tel:${(SITE_SETTINGS.footerPhone||'').replace(/[^0-9+]/g,'')}">${I.phone} ${SITE_SETTINGS.footerPhone}</a>
+            <a href="mailto:${SITE_SETTINGS.footerEmail}">${I.mail} ${SITE_SETTINGS.footerEmail}</a>
+            ${SITE_SETTINGS.footerAddress ? `<a href="#">${I.map} ${SITE_SETTINGS.footerAddress}</a>` : ''}
           </div>
           <div class="footer-social">
-            <a href="https://www.facebook.com/profile.php?id=61580801050695" target="_blank">${I.fb}</a>
-            <a href="#">${I.ig}</a>
-            <a href="#">${I.yt}</a>
+            <a href="${SITE_SETTINGS.facebookUrl||'#'}" target="_blank">${I.fb}</a>
+            <a href="${SITE_SETTINGS.instagramUrl||'#'}" target="_blank">${I.ig}</a>
+            <a href="${SITE_SETTINGS.youtubeUrl||'#'}" target="_blank">${I.yt}</a>
           </div>
         </div>
         <div class="footer-col">
@@ -378,6 +416,7 @@ function renderAdminSidebar() {
     ['Nội dung', [
       ['banners.html','🖼️','Banner trang chủ'],
       ['blog.html','📝','Blog'],
+      ['settings.html','🎨','Cài đặt giao diện'],
       ['ai.html','🤖','AI & Dữ liệu'],
       ['faq.html','❓','FAQ'],
       ['promotions.html','🎁','Khuyến mãi'],
@@ -494,6 +533,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if(document.getElementById('site-header')) renderHeader();
   if(document.getElementById('mobile-nav')) renderMobileNav();
   if(document.getElementById('site-footer')) renderFooter();
+  // Nạp cài đặt giao diện từ server rồi áp dụng (favicon, logo, footer...)
+  if(typeof API !== 'undefined' && API.getSettings) {
+    API.getSettings().then(s => { if(s) applySiteSettings(s); });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -686,6 +729,7 @@ const API = {
         id: p.id, name: p.name, category: p.category,
         price: p.price, image: p.image, description: p.description,
         difficulty: p.difficulty, light: p.light, careLevel: p.careLevel,
+        originalPrice: p.originalPrice, sku: p.sku,
         rating: p.rating, reviews: p.reviewsCount,
         inStock: p.inStock, stock: p.stock
       }));
@@ -867,6 +911,15 @@ const API = {
     } catch(e) { return { ok: false, error: e.message }; }
   },
 
+  async adminCreateOrder(body) {
+    try {
+      const data = await apiFetch('/admin/orders', {
+        method: 'POST', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, order: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
   async adminGetCustomers({ page=1, limit=50 } = {}) {
     try {
       const data = await apiFetch(`/admin/customers?page=${page}&limit=${limit}`);
@@ -903,6 +956,22 @@ const API = {
     } catch(e) { return { ok: false, error: e.message }; }
   },
 
+  async adminUpdateBlog(id, body) {
+    try {
+      const data = await apiFetch('/admin/blog/' + id, {
+        method: 'PUT', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, post: data };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
+  async adminDeleteBlog(id) {
+    try {
+      await apiFetch('/admin/blog/' + id, { method: 'DELETE' });
+      return { ok: true };
+    } catch(e) { return { ok: false, error: e.message }; }
+  },
+
   // ── API: Blog (public) ─────────────────────────
   async getBlog({ category, page=1, limit=50 } = {}) {
     try {
@@ -918,6 +987,23 @@ const API = {
       const data = await apiFetch('/blog/' + slug);
       return data.post || null;
     } catch(e) { return null; }
+  },
+
+  // ── API: Site Settings ─────────────────────────
+  async getSettings() {
+    try {
+      const data = await apiFetch('/settings');
+      return data.settings || null;
+    } catch(e) { return null; }
+  },
+
+  async adminUpdateSettings(body) {
+    try {
+      const data = await apiFetch('/admin/settings', {
+        method: 'PUT', timeout: 20000, body: JSON.stringify(body)
+      });
+      return { ok: true, settings: data.settings };
+    } catch(e) { return { ok: false, error: e.message }; }
   },
 
   // ── API: Banners ───────────────────────────────

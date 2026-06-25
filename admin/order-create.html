@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tạo đơn hàng - VƯƠN Admin</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    body{background:#f3f4f6;}
+    .admin-layout{display:flex;min-height:100vh;}
+    .main-panel{flex:1;padding:2rem;overflow-x:hidden;}
+    .form-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:1.5rem;}
+    @media(max-width:900px){.form-grid{grid-template-columns:1fr;}}
+    .item-row{display:grid;grid-template-columns:1fr 90px 36px;gap:.5rem;align-items:center;margin-bottom:.5rem;}
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div id="admin-sidebar"></div>
+    <div class="main-panel">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;">
+        <a href="orders.html" style="color:#6b7280;text-decoration:none;font-size:1.25rem;">‹</a>
+        <h1 style="font-size:1.5rem;font-weight:800;">Tạo đơn hàng</h1>
+      </div>
+
+      <div class="form-grid">
+        <!-- Sản phẩm -->
+        <div>
+          <div class="card card-pad" style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+              <h2 style="font-weight:700;">Sản phẩm</h2>
+              <button onclick="addItemRow()" class="btn btn-outline btn-sm">+ Thêm dòng</button>
+            </div>
+            <div id="items-wrap"></div>
+            <div style="text-align:right;margin-top:1rem;font-weight:700;">
+              Tạm tính: <span id="subtotal" style="color:#16a34a;">0₫</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khách & giao hàng -->
+        <div>
+          <div class="card card-pad" style="margin-bottom:1rem;">
+            <h2 style="font-weight:700;margin-bottom:1rem;">Khách hàng</h2>
+            <div class="form-group">
+              <label>Chọn khách hàng *</label>
+              <select id="o-user" class="form-control" onchange="onPickCustomer()"></select>
+            </div>
+          </div>
+          <div class="card card-pad" style="margin-bottom:1rem;">
+            <h2 style="font-weight:700;margin-bottom:1rem;">Thông tin giao hàng</h2>
+            <div class="form-group"><label>Người nhận *</label><input id="o-name" class="form-control"></div>
+            <div class="form-group"><label>Điện thoại *</label><input id="o-phone" class="form-control"></div>
+            <div class="form-group"><label>Địa chỉ *</label><textarea id="o-address" class="form-control" rows="2"></textarea></div>
+            <div class="form-group"><label>Ghi chú</label><input id="o-note" class="form-control"></div>
+            <div class="form-group" style="margin:0;">
+              <label>Thanh toán</label>
+              <select id="o-payment" class="form-control">
+                <option value="COD">COD (tiền mặt)</option>
+                <option value="BANK">Chuyển khoản</option>
+                <option value="MOMO">MoMo</option>
+                <option value="ZALOPAY">ZaloPay</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="submitOrder(event)" class="btn btn-green" style="width:100%;">✅ Tạo đơn hàng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/common.js"></script>
+  <script>
+    renderAdminSidebar();
+
+    let products = [];
+    let customers = [];
+
+    async function init() {
+      [products, customers] = await Promise.all([
+        API.adminGetProducts({ limit: 200 }),
+        API.adminGetCustomers({ limit: 200 })
+      ]);
+      document.getElementById('o-user').innerHTML =
+        '<option value="">-- Chọn khách --</option>' +
+        customers.map(c => `<option value="${c.id}">${c.name||c.email} ${c.phone?('· '+c.phone):''}</option>`).join('');
+      addItemRow();
+    }
+
+    function productOptions(selectedId) {
+      return '<option value="">-- Chọn sản phẩm --</option>' +
+        products.map(p => `<option value="${p.id}" ${p.id===selectedId?'selected':''}>${p.name} (${fmt(p.price)})</option>`).join('');
+    }
+
+    function addItemRow() {
+      const wrap = document.getElementById('items-wrap');
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.innerHTML = `
+        <select class="form-control it-prod" onchange="recalc()">${productOptions('')}</select>
+        <input type="number" class="form-control it-qty" value="1" min="1" oninput="recalc()">
+        <button onclick="this.parentElement.remove();recalc()" class="btn" style="background:#fee2e2;color:#ef4444;border:none;padding:.4rem;">✕</button>`;
+      wrap.appendChild(div);
+      recalc();
+    }
+
+    function onPickCustomer() {
+      const id = document.getElementById('o-user').value;
+      const c = customers.find(x => x.id === id);
+      if(c) {
+        if(!document.getElementById('o-name').value) document.getElementById('o-name').value = c.name || '';
+        if(!document.getElementById('o-phone').value) document.getElementById('o-phone').value = c.phone || '';
+      }
+    }
+
+    function collectItems() {
+      return [...document.querySelectorAll('.item-row')].map(row => {
+        const pid = row.querySelector('.it-prod').value;
+        const qty = parseInt(row.querySelector('.it-qty').value) || 1;
+        const p = products.find(x => x.id === pid);
+        if(!p) return null;
+        return { productId: p.id, productName: p.name, productImage: p.image, price: p.price, quantity: qty };
+      }).filter(Boolean);
+    }
+
+    function recalc() {
+      const subtotal = collectItems().reduce((s, it) => s + it.price * it.quantity, 0);
+      document.getElementById('subtotal').textContent = fmt(subtotal);
+    }
+
+    async function submitOrder(event) {
+      const userId = document.getElementById('o-user').value;
+      const items = collectItems();
+      const name = document.getElementById('o-name').value.trim();
+      const phone = document.getElementById('o-phone').value.trim();
+      const address = document.getElementById('o-address').value.trim();
+      if(!userId) { showToast('Chọn khách hàng','error'); return; }
+      if(!items.length) { showToast('Thêm ít nhất 1 sản phẩm','error'); return; }
+      if(!name || !phone || !address) { showToast('Nhập đủ tên / SĐT / địa chỉ','error'); return; }
+
+      const body = {
+        userId,
+        order: {
+          shippingName: name, shippingPhone: phone, shippingAddress: address,
+          shippingNote: document.getElementById('o-note').value.trim(),
+          paymentMethod: document.getElementById('o-payment').value,
+          items
+        }
+      };
+
+      const btn = event.target;
+      btn.disabled = true; btn.textContent = 'Đang tạo...';
+      const r = await API.adminCreateOrder(body);
+      if(r.ok) {
+        showToast('Đã tạo đơn hàng!');
+        setTimeout(() => location.href = 'orders.html', 800);
+      } else {
+        showToast(r.error || 'Tạo đơn thất bại','error');
+        btn.disabled = false; btn.textContent = '✅ Tạo đơn hàng';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
