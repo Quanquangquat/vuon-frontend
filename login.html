@@ -67,6 +67,15 @@
   <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="assets/common.js"></script>
   <script>
+    // Nơi chuyển tới sau khi đăng nhập: ưu tiên ?redirect= (vd quay lại trang thanh toán)
+    function postLoginTarget(user) {
+      const params = new URLSearchParams(location.search);
+      const redirect = params.get('redirect');
+      // Chỉ cho phép đường dẫn nội bộ (tránh open-redirect)
+      if (redirect && /^[a-zA-Z0-9_\-./]+$/.test(redirect) && !redirect.startsWith('//')) return redirect;
+      return (user && user.role === 'admin') ? 'admin/index.html' : 'home.html';
+    }
+
     document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
@@ -86,7 +95,7 @@
 
       if(result.ok) {
         const user = Store.getUser();
-        window.location.href = (user && user.role === 'admin') ? 'admin/index.html' : 'home.html';
+        window.location.href = postLoginTarget(user);
       } else {
         errEl.textContent = result.error || 'Email hoặc mật khẩu không đúng';
         errEl.style.display = 'block';
@@ -100,7 +109,7 @@
       API.loginGoogle(response.credential).then(r => {
         if (r.ok) {
           const user = Store.getUser();
-          window.location.href = (user && user.role === 'admin') ? 'admin/index.html' : 'home.html';
+          window.location.href = postLoginTarget(user);
         } else {
           errEl.textContent = r.error || 'Đăng nhập Google thất bại';
           errEl.style.display = 'block';

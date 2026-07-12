@@ -107,9 +107,16 @@
     async function loadOrders() {
       document.getElementById('orders-tbody').innerHTML =
         '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:2rem;">Đang tải...</td></tr>';
-      allOrders = await API.adminGetOrders({ limit: 100 });
-      filtered  = [...allOrders];
-      renderTable();
+      try {
+        allOrders = await API.adminGetOrders({ limit: 100 });
+        filtered  = [...allOrders];
+        renderTable();
+      } catch (e) {
+        document.getElementById('orders-tbody').innerHTML =
+          '<tr><td colspan="8" style="text-align:center;color:#ef4444;padding:2rem;">' +
+          'Không tải được đơn hàng từ máy chủ (' + (e.message || 'lỗi kết nối') + ').<br>' +
+          '<button onclick="loadOrders()" class="btn btn-green" style="margin-top:.75rem;">Thử lại</button></td></tr>';
+      }
     }
 
     document.getElementById('search-order').addEventListener('input', applyFilter);

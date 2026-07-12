@@ -65,15 +65,22 @@
 
     async function analyze() {
       const btn = document.getElementById('analyze-btn');
+      if(!imageBase64) { showToast('Vui lòng chọn ảnh trước', 'error'); return; }
       btn.textContent='Đang phân tích...'; btn.disabled=true;
-      await new Promise(r=>setTimeout(r,2000));
 
-      const results = [
-        { disease:'Vàng lá do thiếu dinh dưỡng', confidence:87, solution:'Bón phân NPK và tăng cường tưới nước. Loại bỏ lá vàng để tránh lây lan.', description:'Hiện tượng vàng lá thường do thiếu Nitơ hoặc tưới nước không đều' },
-        { disease:'Bệnh đốm lá', confidence:65, solution:'Phun thuốc trừ nấm, cắt bỏ lá bệnh, tránh tưới nước lên lá', description:'Do nấm gây ra, thường xảy ra khi độ ẩm cao' },
-        { disease:'Cây khỏe mạnh', confidence:95, solution:'Tiếp tục chăm sóc như hiện tại.', description:'Cây của bạn trông rất khỏe mạnh!' }
-      ];
-      const r = results[Math.floor(Math.random()*results.length)];
+      let r;
+      try {
+        // Gửi ảnh thật lên backend → Gemini phân tích (không còn ngẫu nhiên)
+        r = await API.aiDiagnose(imageBase64);
+      } catch(e) {
+        document.getElementById('result').innerHTML =
+          '<div class="result-card" style="border-left-color:#ef4444;"><p style="color:#ef4444;">Không phân tích được ảnh ('
+          + (e.message || 'lỗi kết nối') + '). Vui lòng thử lại với ảnh rõ hơn.</p></div>';
+        document.getElementById('result').style.display='block';
+        btn.textContent='Phân tích bệnh cây'; btn.disabled=false;
+        return;
+      }
+      r.confidence = r.confidence || 0;
 
       document.getElementById('result').innerHTML = `
         <div class="result-card">

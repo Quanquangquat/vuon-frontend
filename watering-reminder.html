@@ -51,7 +51,7 @@
     </div>
 
     <div class="alert alert-info" style="margin-top:1rem;">
-      🔔 Nhắc nhở sẽ hiển thị trên trình duyệt nếu bạn cho phép thông báo
+      🔔 Cho phép thông báo để nhận nhắc tưới. Lưu ý: cần mở tab VƯƠN thì thông báo mới chạy (nhắc qua email khi đóng máy sẽ bổ sung sau).
     </div>
   </div>
   <div id="mobile-nav"></div>
@@ -90,10 +90,41 @@
       const time=document.getElementById('water-time').value;
       reminders.push({ id:Date.now(), plant, time, active:true });
       save(); showToast('Đã thêm nhắc tưới '+plant+' lúc '+time);
+      ensureNotifyPermission();
     }
     function toggleReminder(id) { const r=reminders.find(x=>x.id===id); if(r){ r.active=!r.active; save(); } }
     function deleteReminder(id) { reminders=reminders.filter(x=>x.id!==id); save(); showToast('Đã xóa nhắc nhở'); }
     function save() { localStorage.setItem('vuon_reminders',JSON.stringify(reminders)); renderList(); }
+
+    // ── Bộ nhắc thật: xin quyền + kiểm tra giờ mỗi phút, bắn thông báo trình duyệt ──
+    function ensureNotifyPermission() {
+      if (!('Notification' in window)) {
+        showToast('Trình duyệt không hỗ trợ thông báo', 'error'); return;
+      }
+      if (Notification.permission === 'default') Notification.requestPermission();
+    }
+
+    let firedThisMinute = {};   // tránh bắn trùng trong cùng 1 phút
+    function checkReminders() {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const now  = new Date();
+      const hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      const stamp = now.toDateString() + ' ' + hhmm;
+      reminders.forEach(r => {
+        if (r.active && r.time === hhmm && firedThisMinute[r.id] !== stamp) {
+          firedThisMinute[r.id] = stamp;
+          new Notification('💧 Đến giờ tưới cây', {
+            body: 'Nhớ tưới ' + r.plant + ' nhé!',
+            icon: 'assets/logo.png'
+          });
+        }
+      });
+    }
+
+    // Nhắc bật thông báo ngay khi mở trang (nếu đã có lịch)
+    if (reminders.some(r => r.active)) ensureNotifyPermission();
+    setInterval(checkReminders, 20000);  // kiểm tra mỗi 20 giây
+    checkReminders();
 
     renderList();
   </script>

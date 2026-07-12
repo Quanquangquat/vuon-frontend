@@ -66,27 +66,32 @@
       const paymentMap = { cod:'COD', bank:'BANK', wallet:'WALLET' };
       const payMethod  = paymentMap[payment] || 'COD';
 
-      // Đã đăng nhập → tạo đơn thật trên server (gửi kèm items nên không cần sync giỏ)
-      if (getToken()) {
-        const result = await API.createOrder(shipping_info, payMethod);
-        if (result.ok) {
-          Store.clearCart();
-          localStorage.removeItem('vuon_shipping');
-          localStorage.removeItem('vuon_payment');
-          window.location.href = 'order-success.html';
-          return;
-        }
-        // API trả lỗi → báo cho user, không giả vờ thành công
-        showToast((result.error || 'Đặt hàng thất bại') + '. Vui lòng thử lại.', 'error');
-        if (btn) { btn.disabled = false; btn.innerHTML = '✓ Đặt hàng'; }
+      // Chưa đăng nhập → KHÔNG giả vờ thành công. Đưa về đăng nhập rồi quay lại đây.
+      if (!getToken()) {
+        showToast('Vui lòng đăng nhập để hoàn tất đặt hàng.', 'info');
+        setTimeout(() => {
+          window.location.href = 'login.html?redirect=' + encodeURIComponent('checkout-confirm.html');
+        }, 800);
         return;
       }
 
-      // Chưa đăng nhập → xử lý local
-      Store.clearCart();
-      localStorage.removeItem('vuon_shipping');
-      localStorage.removeItem('vuon_payment');
-      window.location.href = 'order-success.html';
+      // Đã đăng nhập → tạo đơn thật trên server (gửi kèm items nên không cần sync giỏ)
+      const result = await API.createOrder(shipping_info, payMethod);
+      if (result.ok) {
+        // Lưu tóm tắt đơn vừa tạo để trang thành công hiện mã QR chuyển khoản (nếu chọn BANK)
+        const o = result.order || {};
+        localStorage.setItem('vuon_last_order', JSON.stringify({
+          id: o.id || '', total: o.total || total, payMethod: payMethod
+        }));
+        Store.clearCart();
+        localStorage.removeItem('vuon_shipping');
+        localStorage.removeItem('vuon_payment');
+        window.location.href = 'order-success.html';
+        return;
+      }
+      // API trả lỗi → báo cho user, không giả vờ thành công
+      showToast((result.error || 'Đặt hàng thất bại') + '. Vui lòng thử lại.', 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '✓ Đặt hàng'; }
     }
   </script>
 </body>

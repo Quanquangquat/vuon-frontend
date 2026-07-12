@@ -75,10 +75,18 @@
     let customers = [];
 
     async function init() {
-      [products, customers] = await Promise.all([
-        API.adminGetProducts({ limit: 200 }),
-        API.adminGetCustomers({ limit: 200 })
-      ]);
+      try {
+        [products, customers] = await Promise.all([
+          API.adminGetProducts({ limit: 200 }),
+          API.adminGetCustomers({ limit: 200 })
+        ]);
+      } catch (e) {
+        showToast('Không tải được dữ liệu từ máy chủ (' + (e.message || 'lỗi kết nối') + '). Kiểm tra backend đã chạy chưa.', 'error');
+        return;
+      }
+      if (!customers.length) {
+        showToast('Chưa có khách hàng nào trong hệ thống để tạo đơn.', 'error');
+      }
       document.getElementById('o-user').innerHTML =
         '<option value="">-- Chọn khách --</option>' +
         customers.map(c => `<option value="${c.id}">${c.name||c.email} ${c.phone?('· '+c.phone):''}</option>`).join('');

@@ -132,7 +132,15 @@
       });
 
       // Recent orders từ backend
-      const orders = await API.adminGetOrders({ limit: 5 });
+      let orders = [];
+      try {
+        orders = await API.adminGetOrders({ limit: 5 });
+      } catch (e) {
+        document.getElementById('orders-table').innerHTML =
+          '<tbody><tr><td style="text-align:center;color:#ef4444;padding:2rem;">Không tải được đơn hàng (' +
+          (e.message || 'lỗi kết nối') + ')</td></tr></tbody>';
+        return;
+      }
       const tbody = orders.map(o => {
         const customerName = o.user?.name || o.shippingName || '--';
         const shortId = String(o.id).substring(0,8).toUpperCase();

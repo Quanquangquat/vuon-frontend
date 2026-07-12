@@ -504,25 +504,15 @@ function requireAuth() {
 }
 
 // ── AI Chat Logic ───────────────────────────────
-const GEMINI_API_KEY = 'AIzaSyDgaE_qofgrYOPNhPo6wtPSU-GXSXczne4';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-
+// Key Gemini KHÔNG còn nằm ở frontend nữa — mọi lời gọi AI đi qua backend (/api/ai/*).
 async function askGemini(userMsg, history=[]) {
-  // Try demo response first
+  // Câu trả lời mẫu nhanh (không tốn lời gọi AI) cho vài từ khoá phổ biến
   const low = userMsg.toLowerCase();
   for(const [k,v] of Object.entries(DEMO_CHAT_RESPONSES)) {
     if(k!=='default' && low.includes(k)) return v;
   }
   try {
-    const ctx = history.slice(-6).map(m=>`${m.isBot?'AI':'User'}: ${m.text}`).join('\n');
-    const prompt = `Bạn là AI tư vấn trồng cây của VƯƠN. Trả lời ngắn gọn, phù hợp khí hậu nhiệt đới Việt Nam.\n\n${ctx}\n\nUser: ${userMsg}\n\nAI:`;
-    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:.7,maxOutputTokens:1000} })
-    });
-    if(!res.ok) throw new Error('API error');
-    const data = await res.json();
-    return data.candidates[0].content.parts[0].text;
+    return await API.aiChat(userMsg, history);
   } catch(e) {
     return DEMO_CHAT_RESPONSES.default;
   }
@@ -804,14 +794,30 @@ const API = {
     } catch(e) { return false; }
   },
 
+  // ── API: AI (proxy qua backend, key nằm ở server) ──
+  async aiChat(message, history=[]) {
+    const data = await apiFetch('/ai/chat', {
+      method: 'POST', timeout: 30000,
+      body: JSON.stringify({ message, history })
+    });
+    return data.reply;
+  },
+
+  // Trả về { disease, confidence, description, solution } hoặc ném lỗi
+  async aiDiagnose(imageDataUrl) {
+    return await apiFetch('/ai/diagnose', {
+      method: 'POST', timeout: 30000,
+      body: JSON.stringify({ image: imageDataUrl })
+    });
+  },
+
   // ── API: Orders ────────────────────────────────
+  // Đơn của người dùng: lấy thật từ server, không trả dữ liệu giả. Ném lỗi để trang xử lý.
   async getOrders({ page=1, limit=10, status } = {}) {
-    try {
-      const params = new URLSearchParams({ page, limit });
-      if (status) params.set('status', status);
-      const data = await apiFetch('/orders?' + params);
-      return data.data || [];
-    } catch(e) { return MOCK_ORDERS; }
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    const data = await apiFetch('/orders?' + params, { timeout: 25000 });
+    return data.data || [];
   },
 
   async createOrder(shippingInfo, paymentMethod='COD', promoCode='') {
@@ -892,13 +898,13 @@ const API = {
     catch(e) { return { ok: false, error: e.message }; }
   },
 
+  // Admin: KHÔNG trả dữ liệu giả khi lỗi — ném lỗi để trang hiển thị đúng trạng thái thật.
+  // timeout dài để chịu được cold-start của Railway.
   async adminGetOrders({ page=1, limit=20, status } = {}) {
-    try {
-      const params = new URLSearchParams({ page, limit });
-      if (status) params.set('status', status);
-      const data = await apiFetch('/admin/orders?' + params);
-      return data.data || [];
-    } catch(e) { return MOCK_ORDERS; }
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    const data = await apiFetch('/admin/orders?' + params, { timeout: 25000 });
+    return data.data || [];
   },
 
   async adminUpdateOrderStatus(id, status) {
@@ -920,11 +926,10 @@ const API = {
     } catch(e) { return { ok: false, error: e.message }; }
   },
 
+  // KHÔNG trả khách hàng giả (ID giả gây lỗi khi tạo đơn). Ném lỗi + timeout dài.
   async adminGetCustomers({ page=1, limit=50 } = {}) {
-    try {
-      const data = await apiFetch(`/admin/customers?page=${page}&limit=${limit}`);
-      return data.data || [];
-    } catch(e) { return MOCK_USERS; }
+    const data = await apiFetch(`/admin/customers?page=${page}&limit=${limit}`, { timeout: 25000 });
+    return data.data || [];
   },
 
   // ── API: Admin – Products CRUD ─────────────────
