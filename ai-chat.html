@@ -92,6 +92,34 @@
       msgs.scrollTop = msgs.scrollHeight;
     }
 
+    // Tạo bong bóng bot rỗng để gõ chữ dần vào
+    function addBotShell() {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-bubble-wrap';
+      wrap.innerHTML = `
+        <div class="chat-avatar bot">
+          <svg width="18" height="18" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M12 2v3M8 2h8M9 11V7h6v4"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>
+        </div>
+        <div class="chat-bubble bot"></div>`;
+      msgs.appendChild(wrap);
+      return wrap.querySelector('.chat-bubble');
+    }
+
+    // Hiệu ứng gõ chữ: hiện dần từng ký tự
+    function typeInto(el, text) {
+      return new Promise(resolve => {
+        let i = 0;
+        const step = () => {
+          i += 2;                                   // 2 ký tự mỗi nhịp cho mượt
+          el.innerHTML = text.slice(0, i).replace(/\n/g, '<br>');
+          msgs.scrollTop = msgs.scrollHeight;
+          if (i < text.length) setTimeout(step, 18);
+          else { el.innerHTML = text.replace(/\n/g, '<br>'); resolve(); }
+        };
+        step();
+      });
+    }
+
     async function sendMessage() {
       const text = input.value.trim();
       if(!text) return;
@@ -104,7 +132,8 @@
 
       const reply = await askGemini(text, history);
       document.getElementById('loading-bubble')?.remove();
-      addBubble(reply, true);
+      const bubble = addBotShell();
+      await typeInto(bubble, reply);
       history.push({text:reply,isBot:true});
       document.getElementById('send-btn').disabled=false;
     }

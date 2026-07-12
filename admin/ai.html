@@ -55,11 +55,30 @@
         <div id="demo-list"></div>
       </div>
 
+      <!-- Chọn model AI -->
+      <div class="ai-card">
+        <h2 style="font-weight:700;margin-bottom:.5rem;">Model AI</h2>
+        <p style="font-size:.875rem;color:#6b7280;margin-bottom:1rem;">Chọn model Gemini backend sẽ dùng. Nhập đúng tên model như trong Google AI Studio.</p>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <input list="model-options" id="ai-model-input" placeholder="vd: gemini-2.5-flash"
+                 style="flex:1;min-width:220px;padding:.6rem .75rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.9rem;">
+          <datalist id="model-options">
+            <option value="gemini-2.5-flash">
+            <option value="gemini-2.5-flash-lite">
+            <option value="gemini-3-flash">
+            <option value="gemini-3.5-flash">
+            <option value="gemini-1.5-flash-latest">
+          </datalist>
+          <button onclick="saveModel()" class="btn btn-green btn-sm">💾 Lưu model</button>
+        </div>
+        <span id="model-result" style="font-size:.8rem;margin-top:.5rem;display:inline-block;"></span>
+      </div>
+
       <!-- Training status -->
       <div class="ai-card">
         <h2 style="font-weight:700;margin-bottom:1rem;">Trạng thái AI</h2>
         <div style="display:flex;flex-direction:column;gap:.5rem;">
-          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f9fafb;font-size:.875rem;"><span style="color:#6b7280;">Model</span><span style="font-weight:600;color:#16a34a;">Gemini 1.5 Flash</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f9fafb;font-size:.875rem;"><span style="color:#6b7280;">Model</span><span id="status-model" style="font-weight:600;color:#16a34a;">—</span></div>
           <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f9fafb;font-size:.875rem;"><span style="color:#6b7280;">Trạng thái</span><span style="font-weight:600;color:#16a34a;">Hoạt động tốt</span></div>
           <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f9fafb;font-size:.875rem;"><span style="color:#6b7280;">API Requests</span><span style="font-weight:600;color:#f59e0b;">2,847/10,000 (tháng)</span></div>
           <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f9fafb;font-size:.875rem;"><span style="color:#6b7280;">Fallback mode</span><span style="font-weight:600;color:#16a34a;">Sẵn sàng</span></div>
@@ -110,6 +129,34 @@
       el.textContent='✅ AI phản hồi: '+reply.substring(0,50)+'...';
       el.style.color='#16a34a';
     }
+
+    // ── Chọn / lưu model AI ──────────────────────────
+    const DEFAULT_MODEL = 'gemini-2.5-flash';
+    async function loadModel() {
+      let model = DEFAULT_MODEL;
+      try {
+        const s = await API.getSettings();
+        if (s && s.aiModel) model = s.aiModel;
+      } catch(e){ /* dùng mặc định */ }
+      document.getElementById('ai-model-input').value = model;
+      document.getElementById('status-model').textContent = model;
+    }
+    async function saveModel() {
+      const el = document.getElementById('model-result');
+      const model = document.getElementById('ai-model-input').value.trim();
+      if (!model) { el.textContent='Vui lòng nhập tên model'; el.style.color='#ef4444'; return; }
+      el.textContent='Đang lưu...'; el.style.color='#6b7280';
+      const r = await API.adminUpdateSettings({ aiModel: model });
+      if (r.ok) {
+        el.textContent='✅ Đã lưu. Backend sẽ dùng: '+model;
+        el.style.color='#16a34a';
+        document.getElementById('status-model').textContent = model;
+      } else {
+        el.textContent='❌ '+(r.error||'Lưu thất bại');
+        el.style.color='#ef4444';
+      }
+    }
+    loadModel();
   </script>
 </body>
 </html>

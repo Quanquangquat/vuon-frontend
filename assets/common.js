@@ -403,6 +403,16 @@ function showToast(msg, type='success') {
 function renderAdminSidebar() {
   const el = document.getElementById('admin-sidebar');
   if(!el) return;
+
+  // Guard quyền admin: chỉ tài khoản role='admin' mới được vào khu vực quản trị.
+  // Nếu chưa đăng nhập hoặc là khách thường → chuyển về trang đăng nhập (tránh loạt lỗi 403).
+  const _u = Store.getUser();
+  if (!getToken() || !_u || _u.role !== 'admin') {
+    alert('Khu vực quản trị yêu cầu tài khoản admin. Vui lòng đăng nhập bằng admin@vuon.vn.');
+    window.location.href = '../login.html';
+    return;
+  }
+
   const page = (window.location.pathname.split('/').pop()) || 'index.html';
 
   const groups = [
@@ -602,9 +612,34 @@ async function apiFetch(path, opts = {}) {
   try {
     const res = await fetch(API_BASE + path, { ...opts, signal: ctrl.signal, headers: { ...apiHeaders(), ...(opts.headers || {}) } });
     clearTimeout(tid);
-    const json = await res.json();
-    if (!json.success) throw new Error(json.message || 'API error');
+
+    // Xử lý các mã lỗi HTTP trước khi parse JSON (response lỗi thường có body rỗng
+    // → tránh lỗi khó hiểu "Unexpected end of JSON input")
+    if (res.status === 401) {
+      clearToken();
+      throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    }
+    if (res.status === 403) {
+      throw new Error('Bạn không có quyền truy cập. Cần đăng nhập bằng tài khoản admin.');
+    }
+
+    // Đọc body dạng text rồi mới parse (an toàn với body rỗng)
+    const text = await res.text();
+    let json = null;
+    if (text) {
+      try { json = JSON.parse(text); } catch { /* body không phải JSON */ }
+    }
+    if (!res.ok) {
+      throw new Error((json && json.message) || ('Lỗi máy chủ (' + res.status + ')'));
+    }
+    if (!json || !json.success) throw new Error((json && json.message) || 'API error');
     return json.data;
+  } catch (e) {
+    // AbortController hết giờ → thông báo dễ hiểu thay vì "signal is aborted without reason"
+    if (e && (e.name === 'AbortError' || /aborted/i.test(e.message || ''))) {
+      throw new Error('Máy chủ phản hồi chậm (có thể đang khởi động). Vui lòng thử lại sau vài giây.');
+    }
+    throw e;
   } finally {
     clearTimeout(tid);
   }
@@ -616,7 +651,7 @@ const API = {
   async login(email, password) {
     try {
       const data = await apiFetch('/auth/login', {
-        method: 'POST',
+        method: 'POST', timeout: 25000,
         body: JSON.stringify({ email, password })
       });
       // data = { token, user }
@@ -633,7 +668,7 @@ const API = {
   async register(name, email, password, phone) {
     try {
       const data = await apiFetch('/auth/register', {
-        method: 'POST',
+        method: 'POST', timeout: 25000,
         body: JSON.stringify({ name, email, password, phone })
       });
       // data = { user, devOtp? } — devOtp chỉ có khi backend tắt gửi mail thật
